@@ -858,24 +858,26 @@ class TectoniqueSimulation {
   }
 
   // =========================================================================
-  // VUE 2 : ZOOM 1 - LES 3 STADES DE L'OUVERTURE OCÉANIQUE (ÉCHELLES RESPECTÉES)
-  // Lithosphère continentale = 150 km
-  // Lithosphère océanique = 100 km
-  // Asthénosphère ductile en dessous
+  // VUE 2 : ZOOM 1 - LES 3 STADES DE L'OUVERTURE OCÉANIQUE (ANIMATION DU SCHÉMA SVT)
+  // Reproduction fidèle et animée du schéma géologique de référence :
+  // 1. Rifting continental (Bombement topographique, épaulements, subsidence, failles normales)
+  // 2. Stade jeune océan (Basaltes, sédiments, eau de mer)
+  // 3. Stade océan mature (Dorsale océanique active, sédiments biseautés, croûte, manteau)
+  // Respect strict des épaisseurs : Lithosphère continentale = 150 km / Lithosphère océanique = 100 km
   // =========================================================================
   renderDivergenceContinuousView() {
     const w = this.width;
     const h = this.height;
     const xc = w * 0.5;
 
-    // Fond ciel / atmosphère au-dessus du relief
+    // Fond ciel au-dessus du relief
     this.ctx.fillStyle = "#0c1527";
     this.ctx.fillRect(0, 0, w, h);
 
     // Paramètre de progression continue (0 à 1)
     const P = Math.min(1.0, Math.max(0.0, this.divergenceProgress));
 
-    // Détermination du stade actif pour le titre et les annotations
+    // Détermination du stade actif et du titre officiel comme sur le schéma
     let currentStage = 1;
     let stageTitle = "Rifting continental";
     if (P >= 0.33 && P < 0.66) {
@@ -886,158 +888,226 @@ class TectoniqueSimulation {
       stageTitle = "Stade océan mature";
     }
 
-    // Titre officiel du stade affiché en haut au centre
+    // Titre officiel du stade en haut au centre
     this.ctx.save();
-    this.ctx.font = "bold 20px Georgia, serif";
+    this.ctx.font = "bold 22px Georgia, serif";
     this.ctx.fillStyle = "#ffffff";
     this.ctx.textAlign = "center";
-    this.ctx.fillText(stageTitle, xc, 34);
+    this.ctx.fillText(stageTitle, xc, 36);
     this.ctx.restore();
 
-    // 1. ÉCHELLE GÉOLOGIQUE VERTICALE EN PROFONDEUR (km)
+    // --- PARAMÈTRES D'ÉCHELLE & ÉPAISSEURS (150 km vs 100 km) ---
     // Lithosphère continentale = 150 km
-    // Lithosphère océanique = 100 km
-    const kmScale = Math.min(1.35, Math.max(0.85, (h * 0.52) / 200));
-    const y0 = Math.round(h * 0.20); // Surface de référence continentale (0 km)
-    const H150 = Math.round(150 * kmScale); // 150 km en px (Lithosphère continentale)
-    const H100 = Math.round(100 * kmScale); // 100 km en px (Lithosphère océanique)
-    const baseContY = y0 + H150; // Base lithosphère continentale (150 km)
+    // Lithosphère océanique = 100 km (exactement les 2/3 de 150 km)
+    const mantleTopY = Math.round(h * 0.62); // Surface horizontale du Manteau asthénosphérique
+    const mantleBottomY = h - 25;
+    const litho150 = Math.round(h * 0.34); // Hauteur 150 km en px
+    const litho100 = Math.round(litho150 * (100 / 150)); // Hauteur 100 km en px (exactement 2/3)
+    const topContY = mantleTopY - litho150; // Surface des continents (0 km)
 
-    const oceanFloorY = y0 + 38; // Plancher océanique sous la mer
-    const baseOceanY = oceanFloorY + H100; // Base lithosphère océanique (100 km)
-    const seaLevelY = y0 + 16; // Niveau de l'eau de mer
+    // Écartement horizontal des blocs selon la progression (animé en continu)
+    let halfSplit = 22 + P * (w * 0.28);
+    const bLeftX = xc - halfSplit;
+    const bRightX = xc + halfSplit;
 
-    // 2. ÉCARTEMENT GÉOMÉTRIQUE DES DEUX BLOCS CONTINENTAUX
-    let halfSplit = 28 + P * (w * 0.27);
-    const blockLeftX = xc - halfSplit;
-    const blockRightX = xc + halfSplit;
+    // 1. LE MANTEAU (Bande horizontale dégradée en bas, fidèle au schéma)
+    this.drawTeacherMantle(xc, mantleTopY, mantleBottomY, w);
 
-    // 3. ASTHÉNOSPHÈRE CHAUDE EN BAS (Manteau ductile)
-    // S'étend sous la base de 150 km des continents et remonte sous l'océan (100 km)
-    // et jusqu'à la base axiale de la dorsale au centre !
-    const mantleGrad = this.ctx.createLinearGradient(0, oceanFloorY, 0, h);
-    mantleGrad.addColorStop(0, "#ea580c"); // Rouge-orangé très chaud
-    mantleGrad.addColorStop(0.35, "#d9480f");
-    mantleGrad.addColorStop(1, "#f59e0b"); // Jaune-doré en profondeur
-
-    this.ctx.fillStyle = mantleGrad;
-    this.ctx.beginPath();
-    this.ctx.moveTo(0, baseContY);
-    this.ctx.lineTo(blockLeftX, baseContY);
-
-    if (P > 0.08) {
-      // Transition sous la marge continentale vers la lithosphère océanique
-      const marginTransW = Math.min(60, halfSplit * 0.4);
-      this.ctx.quadraticCurveTo(blockLeftX + marginTransW, baseOceanY, xc - halfSplit * 0.5, baseOceanY);
-      // Dôme mantellique qui monte au centre sous la dorsale
-      this.ctx.quadraticCurveTo(xc, oceanFloorY - 10, xc + halfSplit * 0.5, baseOceanY);
-      this.ctx.quadraticCurveTo(blockRightX - marginTransW, baseOceanY, blockRightX, baseContY);
-    } else {
-      // Au stade 1 : amincissement central et bombement thermique
-      this.ctx.quadraticCurveTo(xc, baseContY - 35, blockRightX, baseContY);
+    // 2. L'EAU DE MER (Entre les deux blocs continentaux)
+    const seaLevelY = topContY + 32;
+    if (P > 0.05) {
+      this.drawTeacherSeaWater(bLeftX, bRightX, seaLevelY, mantleTopY, P);
     }
 
-    this.ctx.lineTo(w, baseContY);
-    this.ctx.lineTo(w, h);
-    this.ctx.lineTo(0, h);
-    this.ctx.closePath();
-    this.ctx.fill();
+    // 3. LES BASALTES ET LA DORSALE OCÉANIQUE (Posés sur le manteau, épaisseur 100 km)
+    if (P >= 0.22) {
+      this.drawTeacherBasaltsAndRidge(xc, bLeftX, bRightX, mantleTopY, litho100, currentStage, P);
+    }
 
-    // Écriture du mot "Manteau" / "Asthénosphère ductile" en bas à droite
+    // 4. LES SÉDIMENTS JAUNES (De part et d'autre de la dorsale)
+    if (P >= 0.30) {
+      this.drawTeacherSediments(xc, bLeftX, bRightX, mantleTopY, litho100, currentStage, P);
+    }
+
+    // 5. LA CROÛTE CONTINENTALE MARRON (Blocs basculés avec failles normales, 150 km)
+    this.drawTeacherContinentalCrust(bLeftX, bRightX, topContY, mantleTopY, w, currentStage, P);
+
+    // 6. ANNOTATIONS EXACTES SELON LE STADE (Mot pour mot du schéma de référence)
+    if (currentStage === 1) {
+      this.drawTeacherStage1Annotations(xc, topContY, bLeftX, bRightX);
+    } else if (currentStage === 2) {
+      this.drawTeacherStage2Annotations(xc, mantleTopY - litho100 * 0.5);
+    } else {
+      this.drawTeacherStage3Annotations(xc, mantleTopY, litho100, bRightX, w);
+    }
+
+    // 7. COTES D'ÉPAISSEURS (150 km continentale / 100 km océanique)
+    this.drawTeacherThicknessLabels(topContY, mantleTopY, litho150, litho100, bLeftX, bRightX, xc, currentStage);
+  }
+
+  // Bande horizontale du Manteau (orange à jaune) avec flèches de convection et mot "Manteau"
+  drawTeacherMantle(xc, topY, bottomY, w) {
     this.ctx.save();
-    this.ctx.font = "italic 16px Georgia, serif";
+    const grad = this.ctx.createLinearGradient(0, topY, 0, bottomY);
+    grad.addColorStop(0, "#d9480f"); // Rouge-orangé chaud
+    grad.addColorStop(0.35, "#f97316");
+    grad.addColorStop(1, "#fbbf24"); // Jaune en bas
+
+    this.ctx.fillStyle = grad;
+    this.ctx.fillRect(0, topY, w, bottomY - topY);
+
+    // Mot "Manteau" écrit en noir en bas à droite comme sur le schéma
+    this.ctx.font = "italic 18px Georgia, serif";
     this.ctx.fillStyle = "#1e1e1e";
     this.ctx.textAlign = "right";
-    this.ctx.fillText("Manteau (Asthénosphère ductile)", w - 30, h - 22);
+    this.ctx.fillText("Manteau", w - 40, bottomY - 12);
+
+    // Deux flèches de convection divergentes au centre : ↶ ↷
+    this.drawMantleCurvedDivergenceArrows(xc, (topY + bottomY) * 0.5);
     this.ctx.restore();
-
-    // Deux flèches de convection divergentes dans le manteau : ↶ ↷
-    this.drawMantleCurvedDivergenceArrows(xc, h * 0.78);
-
-    // 4. MANTEAU LITHOSPHÉRIQUE OCÉANIQUE RIGIDE (100 km avec la croûte)
-    // S'épaissit de 0 km à la dorsale jusqu'à 100 km en s'éloignant
-    if (P >= 0.22) {
-      this.drawOceanicLithosphericMantle(xc, blockLeftX, blockRightX, oceanFloorY, baseOceanY, P, currentStage);
-    }
-
-    // 5. EAU DE MER (Apparaît et s'élargit avec l'océanisation)
-    if (P > 0.08) {
-      const waterAlpha = Math.min(1.0, (P - 0.08) * 4);
-      const seaGrad = this.ctx.createLinearGradient(0, seaLevelY, 0, oceanFloorY + 30);
-      seaGrad.addColorStop(0, `rgba(56, 189, 248, ${0.9 * waterAlpha})`);
-      seaGrad.addColorStop(1, `rgba(2, 132, 199, ${0.95 * waterAlpha})`);
-
-      this.ctx.fillStyle = seaGrad;
-      const waterLeft = Math.max(0, blockLeftX - 10);
-      const waterRight = Math.min(w, blockRightX + 10);
-      this.ctx.fillRect(waterLeft, seaLevelY, waterRight - waterLeft, oceanFloorY + 30 - seaLevelY);
-
-      // Ligne de surface de l'eau
-      this.ctx.strokeStyle = `rgba(186, 230, 253, ${waterAlpha})`;
-      this.ctx.lineWidth = 1.8;
-      this.ctx.beginPath();
-      this.ctx.moveTo(waterLeft, seaLevelY);
-      this.ctx.lineTo(waterRight, seaLevelY);
-      this.ctx.stroke();
-    }
-
-    // 6. CROÛTE OCÉANIQUE BASALTIQUE & DORSALE (Stades 2 et 3)
-    if (P >= 0.25) {
-      const basaltSpread = (P - 0.25) * (halfSplit * 1.5);
-      this.drawBasalticCrustAndRidge(xc, oceanFloorY, basaltSpread, currentStage, P);
-    }
-
-    // 7. SÉDIMENTS JAUNES BISEAUTÉS (Stades 2 et 3)
-    if (P >= 0.35) {
-      this.drawSedimentLayers(xc, blockLeftX, blockRightX, oceanFloorY, currentStage, P);
-    }
-
-    // 8. BLOCS CONTINENTAUX BASCULÉS (LITHOSPHÈRE CONTINENTALE 150 km)
-    this.drawTiltedContinentalBlocks(blockLeftX, blockRightX, y0, baseContY, w, currentStage, P, kmScale);
-
-    // 9. ÉCHELLE VERTICALE GRADUÉE (0 à 200 km) & COTES VISUELLES 150 km / 100 km
-    this.drawMetricDepthsAndDimensionArrows(y0, kmScale, H150, H100, baseContY, baseOceanY, oceanFloorY, blockLeftX, blockRightX, xc, currentStage, P);
-
-    // 10. ANNOTATIONS ET SCHÉMATISATIONS SELON LE STADE
-    if (currentStage === 1) {
-      this.drawStage1Annotations(xc, y0, blockLeftX, blockRightX);
-    } else if (currentStage === 2) {
-      this.drawStage2Annotations(xc, y0, blockLeftX, blockRightX);
-    } else {
-      this.drawStage3Annotations(xc, y0, blockLeftX, blockRightX, w);
-    }
   }
 
-  // Manteau lithosphérique océanique refroidi sous la croûte basaltique
-  // Épaisseur = 100 km à maturité (rapport respecté)
-  drawOceanicLithosphericMantle(xc, bLeftX, bRightX, floorY, baseOcY, P, stage) {
+  // Eau de mer remplissant la dépression océanique entre les deux blocs
+  drawTeacherSeaWater(bLeftX, bRightX, seaLevelY, mantleTopY, P) {
     this.ctx.save();
-    this.ctx.fillStyle = "#2c3b2d"; // Vert sombre péridotite lithosphérique rigide
-    this.ctx.strokeStyle = "#1a251b";
+    const waterAlpha = Math.min(1.0, (P - 0.05) * 4);
+    const grad = this.ctx.createLinearGradient(0, seaLevelY, 0, mantleTopY);
+    grad.addColorStop(0, `rgba(56, 189, 248, ${0.9 * waterAlpha})`);
+    grad.addColorStop(1, `rgba(2, 132, 199, ${0.95 * waterAlpha})`);
+
+    const left = Math.max(0, bLeftX - 5);
+    const right = Math.min(this.width, bRightX + 5);
+
+    this.ctx.fillStyle = grad;
+    this.ctx.fillRect(left, seaLevelY, right - left, mantleTopY - seaLevelY);
+
+    // Ligne de surface de l'eau
+    this.ctx.strokeStyle = `rgba(186, 230, 253, ${waterAlpha})`;
+    this.ctx.lineWidth = 1.5;
+    this.ctx.beginPath();
+    this.ctx.moveTo(left, seaLevelY);
+    this.ctx.lineTo(right, seaLevelY);
+    this.ctx.stroke();
+    this.ctx.restore();
+  }
+
+  // Basaltes et dorsale océanique : épaisseur 100 km posée directement sur le manteau
+  drawTeacherBasaltsAndRidge(xc, bLeftX, bRightX, mantleTopY, litho100, stage, P) {
+    this.ctx.save();
+    this.ctx.fillStyle = "#262626"; // Anthracite sombre des basaltes
+    this.ctx.strokeStyle = "#171717";
+    this.ctx.lineWidth = 1.5;
+
+    const floorY = mantleTopY - litho100; // Sommet du plancher basaltique (100 km d'épaisseur)
+
+    if (stage === 2) {
+      // STADE 2 : Massif central de prismes basaltiques verticaux
+      const halfW = Math.min(70, (bRightX - bLeftX) * 0.32);
+      const ridgeH = litho100 + 12; // Légèrement surélevé au centre
+      const topColY = mantleTopY - ridgeH;
+
+      const cols = 12;
+      for (let i = 0; i < cols; i++) {
+        const colX = xc - halfW + (i / cols) * (halfW * 2);
+        const colW = (halfW * 2) / cols;
+        const distFromCenter = Math.abs(i - cols * 0.5) / (cols * 0.5);
+        const curTopY = topColY + distFromCenter * 10;
+
+        this.ctx.fillRect(colX, curTopY, colW, mantleTopY - curTopY);
+        this.ctx.strokeRect(colX, curTopY, colW, mantleTopY - curTopY);
+      }
+
+      // Mot "Basaltes" écrit en blanc sur les prismes comme sur le schéma
+      this.ctx.font = "14px Georgia, serif";
+      this.ctx.fillStyle = "#ffffff";
+      this.ctx.textAlign = "center";
+      this.ctx.fillText("Basaltes", xc, topColY + 28);
+
+    } else if (stage === 3) {
+      // STADE 3 : Plancher basaltique continu (100 km) + Dorsale océanique centrale culminante
+      const leftBasalt = bLeftX + 5;
+      const rightBasalt = bRightX - 5;
+
+      // 1. Plancher basaltique horizontal de part et d'autre (100 km d'épaisseur)
+      this.ctx.fillRect(leftBasalt, floorY, rightBasalt - leftBasalt, litho100);
+      this.ctx.strokeRect(leftBasalt, floorY, rightBasalt - leftBasalt, litho100);
+
+      // 2. Relief triangulaire culminant de la dorsale océanique au centre
+      const ridgeHalfW = Math.min(90, (bRightX - bLeftX) * 0.22);
+      const ridgeTopY = floorY - 26; // Relief s'élevant au-dessus du plancher
+
+      const cols = 16;
+      for (let i = 0; i < cols; i++) {
+        const colX = xc - ridgeHalfW + (i / cols) * (ridgeHalfW * 2);
+        const colW = (ridgeHalfW * 2) / cols;
+        const dist = Math.abs(i - cols * 0.5) / (cols * 0.5);
+        let curTopY = ridgeTopY + dist * 24;
+
+        // Petite encoche axiale pour le rift au centre
+        if (Math.abs(i - cols * 0.5) <= 1.2) curTopY += 6;
+
+        this.ctx.fillRect(colX, curTopY, colW, mantleTopY - curTopY);
+        this.ctx.strokeRect(colX, curTopY, colW, mantleTopY - curTopY);
+      }
+
+      // Petit filet de magma liquide effusif au centre de la dorsale
+      this.ctx.fillStyle = "#ef4444";
+      this.ctx.beginPath();
+      this.ctx.arc(xc, ridgeTopY + 6, 3.5, 0, Math.PI * 2);
+      this.ctx.fill();
+    }
+    this.ctx.restore();
+  }
+
+  // Sédiments jaunes biseautés posés sur les basaltes
+  drawTeacherSediments(xc, bLeftX, bRightX, mantleTopY, litho100, stage, P) {
+    this.ctx.save();
+    this.ctx.fillStyle = "#fde047"; // Jaune vif pur du schéma
+    this.ctx.strokeStyle = "#eab308";
     this.ctx.lineWidth = 1.2;
 
-    const spreadLeft = xc - bLeftX - 15;
-    const spreadRight = bRightX - xc - 15;
+    const floorY = mantleTopY - litho100;
 
-    // Plaque lithosphérique océanique gauche (s'épaissit vers la gauche jusqu'à 100 km)
-    if (spreadLeft > 15) {
+    if (stage === 2) {
+      // Petits triangles jaunes de sédiments collés aux blocs marrons
+      const halfW = (bRightX - bLeftX) * 0.32;
+      // Triangle gauche
       this.ctx.beginPath();
-      this.ctx.moveTo(xc - 12, floorY + 12);
-      this.ctx.lineTo(bLeftX + 5, floorY + 12);
-      this.ctx.lineTo(bLeftX + 5, baseOcY);
-      this.ctx.lineTo(xc - 12, floorY + 22);
+      this.ctx.moveTo(bLeftX + 5, floorY + 10);
+      this.ctx.lineTo(bLeftX + 5, floorY - 8);
+      this.ctx.lineTo(xc - halfW + 5, floorY + 10);
       this.ctx.closePath();
       this.ctx.fill();
       this.ctx.stroke();
-    }
 
-    // Plaque lithosphérique océanique droite (s'épaissit vers la droite jusqu'à 100 km)
-    if (spreadRight > 15) {
+      // Triangle droit
       this.ctx.beginPath();
-      this.ctx.moveTo(xc + 12, floorY + 12);
-      this.ctx.lineTo(bRightX - 5, floorY + 12);
-      this.ctx.lineTo(bRightX - 5, baseOcY);
-      this.ctx.lineTo(xc + 12, floorY + 22);
+      this.ctx.moveTo(bRightX - 5, floorY + 10);
+      this.ctx.lineTo(bRightX - 5, floorY - 8);
+      this.ctx.lineTo(xc + halfW - 5, floorY + 10);
+      this.ctx.closePath();
+      this.ctx.fill();
+      this.ctx.stroke();
+
+    } else if (stage === 3) {
+      // Couche sédimentaire biseautée : nulle à la dorsale, épaisse vers les marges
+      const ridgeHalfW = Math.min(90, (bRightX - bLeftX) * 0.22);
+      const sedH = 18;
+
+      // Sédiments côté gauche
+      this.ctx.beginPath();
+      this.ctx.moveTo(bLeftX + 5, floorY);
+      this.ctx.lineTo(bLeftX + 5, floorY - sedH);
+      this.ctx.lineTo(xc - ridgeHalfW - 5, floorY);
+      this.ctx.closePath();
+      this.ctx.fill();
+      this.ctx.stroke();
+
+      // Sédiments côté droit
+      this.ctx.beginPath();
+      this.ctx.moveTo(bRightX - 5, floorY);
+      this.ctx.lineTo(bRightX - 5, floorY - sedH);
+      this.ctx.lineTo(xc + ridgeHalfW + 5, floorY);
       this.ctx.closePath();
       this.ctx.fill();
       this.ctx.stroke();
@@ -1045,233 +1115,197 @@ class TectoniqueSimulation {
     this.ctx.restore();
   }
 
-  // Blocs continentaux : Lithosphère continentale de 150 km d'épaisseur
-  // Croûte marron au sommet (failles normales) + Manteau lithosphérique rigide dessous
-  drawTiltedContinentalBlocks(bLeftX, bRightX, topY, baseY, totalW, stage, P, kmScale) {
+  // Blocs continentaux marrons : épaisseur 150 km avec blocs basculés en gradins
+  drawTeacherContinentalCrust(bLeftX, bRightX, topY, baseY, totalW, stage, P) {
     this.ctx.save();
-    const crustH = Math.round(35 * kmScale); // Croûte continentale ~35 km
+    this.ctx.fillStyle = "#6d281e"; // Marron terreux exact du schéma
+    this.ctx.strokeStyle = "#431811";
+    this.ctx.lineWidth = 2;
 
-    // --- A. BLOC CONTINENTAL GAUCHE (150 km d'épaisseur) ---
-    // 1. Manteau lithosphérique continental rigide (partie inférieure jusqu'à 150 km)
-    this.ctx.fillStyle = "#4a1912"; // Brun foncé rigide
-    this.ctx.strokeStyle = "#30100b";
-    this.ctx.lineWidth = 1.5;
+    // A. BLOC CONTINENTAL GAUCHE (150 km)
     this.ctx.beginPath();
-    this.ctx.moveTo(0, topY + crustH);
-    this.ctx.lineTo(bLeftX, topY + crustH);
-    this.ctx.lineTo(bLeftX, baseY);
+    this.ctx.moveTo(0, topY + 30);
     this.ctx.lineTo(0, baseY);
+    this.ctx.lineTo(bLeftX + (stage === 1 ? 25 : 0), baseY);
+
+    // Profil de failles normales descendant vers l'axe
+    this.ctx.lineTo(bLeftX, topY + 25);
+    this.ctx.lineTo(bLeftX - 35, topY);       // Épaulement (crête 1)
+    this.ctx.lineTo(bLeftX - 45, topY + 18);  // Faille normale 1
+    this.ctx.lineTo(bLeftX - 85, topY + 6);   // Bloc 2
+    this.ctx.lineTo(bLeftX - 95, topY + 22);  // Faille normale 2
+    this.ctx.lineTo(bLeftX - 135, topY + 12); // Bloc 3
+    this.ctx.lineTo(0, topY + 30);
     this.ctx.closePath();
     this.ctx.fill();
     this.ctx.stroke();
 
-    // 2. Croûte continentale supérieure (marron terreux du schéma avec blocs basculés)
-    this.ctx.fillStyle = "#6d281e";
-    this.ctx.strokeStyle = "#431811";
-    this.ctx.lineWidth = 2;
+    // B. BLOC CONTINENTAL DROIT (150 km - Symétrique)
     this.ctx.beginPath();
-    this.ctx.moveTo(0, topY + 40);
-    this.ctx.lineTo(0, topY + crustH);
-    this.ctx.lineTo(bLeftX, topY + crustH);
-
-    // Pente de faille normale bordière
-    this.ctx.lineTo(bLeftX, topY + 30);
-    // Épaulement et blocs basculés en gradins
-    this.ctx.lineTo(bLeftX - 35, topY);       // Crête de bloc 1
-    this.ctx.lineTo(bLeftX - 45, topY + 22);  // Faille normale 1
-    this.ctx.lineTo(bLeftX - 85, topY + 5);   // Crête de bloc 2
-    this.ctx.lineTo(bLeftX - 95, topY + 24);  // Faille normale 2
-    this.ctx.lineTo(bLeftX - 140, topY + 12); // Crête de bloc 3
-    this.ctx.lineTo(0, topY + 40);
-    this.ctx.closePath();
-    this.ctx.fill();
-    this.ctx.stroke();
-
-    // --- B. BLOC CONTINENTAL DROIT (150 km d'épaisseur) ---
-    // 1. Manteau lithosphérique continental rigide
-    this.ctx.fillStyle = "#4a1912";
-    this.ctx.strokeStyle = "#30100b";
-    this.ctx.lineWidth = 1.5;
-    this.ctx.beginPath();
-    this.ctx.moveTo(bRightX, topY + crustH);
-    this.ctx.lineTo(totalW, topY + crustH);
+    this.ctx.moveTo(totalW, topY + 30);
     this.ctx.lineTo(totalW, baseY);
-    this.ctx.lineTo(bRightX, baseY);
+    this.ctx.lineTo(bRightX - (stage === 1 ? 25 : 0), baseY);
+
+    this.ctx.lineTo(bRightX, topY + 25);
+    this.ctx.lineTo(bRightX + 35, topY);       // Épaulement (crête 1)
+    this.ctx.lineTo(bRightX + 45, topY + 18);  // Faille normale 1
+    this.ctx.lineTo(bRightX + 85, topY + 6);   // Bloc 2
+    this.ctx.lineTo(bRightX + 95, topY + 22);  // Faille normale 2
+    this.ctx.lineTo(bRightX + 135, topY + 12); // Bloc 3
+    this.ctx.lineTo(totalW, topY + 30);
     this.ctx.closePath();
     this.ctx.fill();
     this.ctx.stroke();
 
-    // 2. Croûte continentale supérieure (marron terreux du schéma avec blocs basculés)
-    this.ctx.fillStyle = "#6d281e";
-    this.ctx.strokeStyle = "#431811";
-    this.ctx.lineWidth = 2;
-    this.ctx.beginPath();
-    this.ctx.moveTo(totalW, topY + 40);
-    this.ctx.lineTo(totalW, topY + crustH);
-    this.ctx.lineTo(bRightX, topY + crustH);
+    // Lignes de failles normales sombres à l'intérieur du bloc marron
+    this.drawInternalFaultLine(bLeftX - 45, topY + 18, bLeftX - 25, baseY);
+    this.drawInternalFaultLine(bLeftX - 95, topY + 22, bLeftX - 75, baseY);
+    this.drawInternalFaultLine(bRightX + 45, topY + 18, bRightX + 25, baseY);
+    this.drawInternalFaultLine(bRightX + 95, topY + 22, bRightX + 75, baseY);
 
-    // Pente de faille normale bordière
-    this.ctx.lineTo(bRightX, topY + 30);
-    // Épaulement et blocs basculés en gradins
-    this.ctx.lineTo(bRightX + 35, topY);       // Crête de bloc 1
-    this.ctx.lineTo(bRightX + 45, topY + 22);  // Faille normale 1
-    this.ctx.lineTo(bRightX + 85, topY + 5);   // Crête de bloc 2
-    this.ctx.lineTo(bRightX + 95, topY + 24);  // Faille normale 2
-    this.ctx.lineTo(bRightX + 140, topY + 12); // Crête de bloc 3
-    this.ctx.lineTo(totalW, topY + 40);
-    this.ctx.closePath();
-    this.ctx.fill();
-    this.ctx.stroke();
-
-    // Failles normales dessinées en traits sombres à l'intérieur de la croûte
-    this.drawInternalFaultLine(bLeftX - 45, topY + 22, bLeftX - 25, topY + crustH + 20);
-    this.drawInternalFaultLine(bLeftX - 95, topY + 24, bLeftX - 75, topY + crustH + 20);
-    this.drawInternalFaultLine(bRightX + 45, topY + 22, bRightX + 25, topY + crustH + 20);
-    this.drawInternalFaultLine(bRightX + 95, topY + 24, bRightX + 75, topY + crustH + 20);
-
-    // Flèches d'extension horizontales dans la croûte (flèches noires)
+    // Flèches noires horizontales d'extension dans la croûte comme sur le schéma
     if (stage === 1) {
-      this.drawHorizontalBlackArrow(bLeftX - 110, topY + 55, -45);
-      this.drawHorizontalBlackArrow(bRightX + 110, topY + 55, 45);
+      this.drawHorizontalBlackArrow(bLeftX - 100, topY + 45, -45);
+      this.drawHorizontalBlackArrow(bRightX + 100, topY + 45, 45);
     } else if (stage === 2) {
-      this.drawHorizontalBlackArrow(bLeftX - 80, topY + 65, -40);
-      this.drawHorizontalBlackArrow(bRightX + 80, topY + 65, 40);
+      this.drawHorizontalBlackArrow(bLeftX - 70, topY + 50, -40);
+      this.drawHorizontalBlackArrow(bRightX + 70, topY + 50, 40);
     } else {
-      this.drawHorizontalBlackArrow(bLeftX - 40, topY + 70, -35);
+      // Au stade 3 : flèche vers la gauche sur le continent gauche
+      this.drawHorizontalBlackArrow(bLeftX - 35, topY + 55, -35);
     }
 
     this.ctx.restore();
   }
 
-  // Règle métrique verticale graduée (0 à 200 km) et Cotes graphiques 150 km et 100 km
-  drawMetricDepthsAndDimensionArrows(y0, kmScale, H150, H100, baseContY, baseOceanY, oceanFloorY, bLeftX, bRightX, xc, stage, P) {
+  // Annotations exactes du Stade 1 (Rifting continental)
+  drawTeacherStage1Annotations(xc, topY, bLeftX, bRightX) {
     this.ctx.save();
+    this.ctx.font = "14px Georgia, serif";
 
-    // 1. RÈGLE MÉTRIQUE GRADUÉE À GAUCHE
-    const scaleX = 42;
-    const depths = [
-      { km: 0, label: "0 km (Surface)", color: "#38bdf8" },
-      { km: 50, label: "50 km", color: "#94a3b8" },
-      { km: 100, label: "100 km (Litho. océanique)", color: "#38bdf8" },
-      { km: 150, label: "150 km (Litho. continentale)", color: "#f87171" },
-      { km: 200, label: "200 km (Asthénosphère)", color: "#fb923c" }
-    ];
-
-    // Fond discret translucide pour la règle
-    this.ctx.fillStyle = "rgba(10, 16, 28, 0.85)";
-    this.ctx.strokeStyle = "rgba(148, 163, 184, 0.4)";
-    this.ctx.lineWidth = 1;
-    this.ctx.beginPath();
-    this.ctx.roundRect(scaleX - 32, y0 - 15, 145, 200 * kmScale + 30, 8);
-    this.ctx.fill();
-    this.ctx.stroke();
-
-    // Axe vertical de la règle
-    this.ctx.strokeStyle = "rgba(255, 255, 255, 0.7)";
+    // 1. Bombement topographique (arc de cercle en pointillés au-dessus du rift)
+    this.ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
+    this.ctx.setLineDash([4, 4]);
     this.ctx.lineWidth = 1.8;
     this.ctx.beginPath();
-    this.ctx.moveTo(scaleX, y0);
-    this.ctx.lineTo(scaleX, y0 + 200 * kmScale);
+    this.ctx.moveTo(bLeftX - 35, topY);
+    this.ctx.quadraticCurveTo(xc, topY - 24, bRightX + 35, topY);
     this.ctx.stroke();
-
-    depths.forEach((d) => {
-      const curY = y0 + d.km * kmScale;
-      this.ctx.strokeStyle = d.color;
-      this.ctx.lineWidth = 2;
-      this.ctx.beginPath();
-      this.ctx.moveTo(scaleX - 5, curY);
-      this.ctx.lineTo(scaleX + 5, curY);
-      this.ctx.stroke();
-
-      this.ctx.fillStyle = d.color;
-      this.ctx.font = (d.km === 100 || d.km === 150) ? "bold 10px monospace" : "9px monospace";
-      this.ctx.textAlign = "left";
-      this.ctx.fillText(d.label, scaleX + 9, curY + 3.5);
-    });
-
-    // Lignes repères horizontales en pointillés vers les profondeurs 100 km et 150 km
-    this.ctx.setLineDash([3, 4]);
-    this.ctx.lineWidth = 1.2;
-
-    // Ligne 150 km (Base Lithosphère continentale)
-    this.ctx.strokeStyle = "rgba(248, 113, 113, 0.55)";
-    this.ctx.beginPath();
-    this.ctx.moveTo(scaleX + 115, baseContY);
-    this.ctx.lineTo(Math.max(scaleX + 120, bLeftX - 10), baseContY);
-    this.ctx.stroke();
-
-    // Ligne 100 km (Base Lithosphère océanique - Stades 2 & 3)
-    if (stage >= 2) {
-      this.ctx.strokeStyle = "rgba(56, 189, 248, 0.55)";
-      this.ctx.beginPath();
-      this.ctx.moveTo(scaleX + 115, baseOceanY);
-      this.ctx.lineTo(Math.max(scaleX + 120, bLeftX + 20), baseOceanY);
-      this.ctx.stroke();
-    }
     this.ctx.setLineDash([]);
 
-    // 2. FLÈCHE DE COTE SUR LA LITHOSPHÈRE CONTINENTALE (150 km)
-    // Placée sur le bloc continental gauche
-    const arrowContX = Math.max(scaleX + 130, bLeftX - 90);
-    this.drawVerticalDimensionBracket(arrowContX, y0 + 35, baseContY, "Lithosphère continentale : 150 km", "#f87171", "#451a03");
+    this.ctx.fillStyle = "#ffffff";
+    this.ctx.textAlign = "center";
+    this.ctx.fillText("Bombement topographique", xc, topY - 30);
 
-    // 3. FLÈCHE DE COTE SUR LA LITHOSPHÈRE OCÉANIQUE (100 km)
-    // Visible aux stades 2 et 3 au niveau du plancher océanique
-    if (stage >= 2 && (bRightX - xc) > 75) {
-      const arrowOceanX = xc + (bRightX - xc) * 0.48;
-      this.drawVerticalDimensionBracket(arrowOceanX, oceanFloorY + 10, baseOceanY, "Lithosphère océanique : 100 km", "#38bdf8", "#0f291e");
+    // 2. Épaulements
+    this.ctx.fillStyle = "#1e1e1e";
+    this.ctx.fillText("Épaulement", bLeftX - 35, topY + 15);
+    this.ctx.fillText("Épaulement", bRightX + 35, topY + 15);
+
+    // 3. Subsidence tectonique et thermique
+    this.ctx.fillStyle = "#ffffff";
+    this.ctx.fillText("Subsidence", xc, topY + 42);
+    this.ctx.fillText("tectonique et thermique", xc, topY + 60);
+
+    this.ctx.restore();
+  }
+
+  // Annotations du Stade 2 (le mot "Basaltes" est déjà sur le massif)
+  drawTeacherStage2Annotations(xc, basaltsY) {}
+
+  // Annotations exactes du Stade 3 (Stade océan mature)
+  drawTeacherStage3Annotations(xc, mantleTopY, litho100, bRightX, totalW) {
+    this.ctx.save();
+    this.ctx.font = "15px Georgia, serif";
+
+    const floorY = mantleTopY - litho100;
+    const ridgeTopY = floorY - 26;
+
+    // 1. "Dorsale océanique" avec flèche rouge pointant sur la dorsale
+    this.ctx.fillStyle = "#ffffff";
+    this.ctx.textAlign = "right";
+    this.ctx.fillText("Dorsale océanique", xc - 30, ridgeTopY - 18);
+    this.drawRedPointerArrow(xc - 26, ridgeTopY - 15, xc - 4, ridgeTopY + 4);
+
+    // 2. "Sédiments" avec flèche rouge pointant sur les sédiments jaunes
+    this.ctx.textAlign = "left";
+    this.ctx.fillText("Sédiments", xc + 75, ridgeTopY - 14);
+    this.drawRedPointerArrow(xc + 72, ridgeTopY - 10, xc + 50, floorY - 8);
+
+    // 3. "Croûte" écrit en blanc sur le continent droit comme sur le schéma
+    this.ctx.fillStyle = "#ffffff";
+    this.ctx.textAlign = "center";
+    this.ctx.fillText("Croûte", bRightX + 50, mantleTopY - 35);
+
+    this.ctx.restore();
+  }
+
+  // Cotes d'épaisseurs discrètes et précises : 150 km continentale / 100 km océanique
+  drawTeacherThicknessLabels(topContY, mantleTopY, litho150, litho100, bLeftX, bRightX, xc, stage) {
+    this.ctx.save();
+
+    // Double flèche de cote sur le continent gauche : 150 km
+    const contX = Math.max(35, bLeftX - 110);
+    this.drawDimensionIndicator(contX, topContY + 30, mantleTopY, "150 km", "Lithosphère continentale", "#f87171");
+
+    // Double flèche de cote sur la lithosphère océanique (100 km) - Stades 2 et 3
+    if (stage >= 2 && (bRightX - xc) > 65) {
+      const oceanX = xc + (bRightX - xc) * 0.48;
+      const floorY = mantleTopY - litho100;
+      this.drawDimensionIndicator(oceanX, floorY, mantleTopY, "100 km", "Lithosphère océanique", "#38bdf8");
     }
 
     this.ctx.restore();
   }
 
-  // Trace une double flèche verticale de cote avec étiquette bien lisible
-  drawVerticalDimensionBracket(x, yTop, yBottom, label, color, bgBadgeColor) {
+  // Double flèche de cote avec cartouche
+  drawDimensionIndicator(x, yTop, yBottom, kmLabel, fullLabel, color) {
     this.ctx.save();
     this.ctx.strokeStyle = color;
     this.ctx.fillStyle = color;
-    this.ctx.lineWidth = 1.8;
+    this.ctx.lineWidth = 1.6;
 
-    // Traits d'arrêt horizontaux en haut et en bas
+    // Arrêts horizontaux
     this.ctx.beginPath();
-    this.ctx.moveTo(x - 6, yTop);
-    this.ctx.lineTo(x + 6, yTop);
-    this.ctx.moveTo(x - 6, yBottom);
-    this.ctx.lineTo(x + 6, yBottom);
+    this.ctx.moveTo(x - 5, yTop);
+    this.ctx.lineTo(x + 5, yTop);
+    this.ctx.moveTo(x - 5, yBottom);
+    this.ctx.lineTo(x + 5, yBottom);
     this.ctx.stroke();
 
-    // Axe vertical double flèche
+    // Ligne verticale
     this.ctx.beginPath();
     this.ctx.moveTo(x, yTop);
     this.ctx.lineTo(x, yBottom);
     this.ctx.stroke();
 
-    // Flèche haut
+    // Pointe haut
     this.ctx.beginPath();
     this.ctx.moveTo(x, yTop);
-    this.ctx.lineTo(x - 4, yTop + 7);
-    this.ctx.lineTo(x + 4, yTop + 7);
+    this.ctx.lineTo(x - 3.5, yTop + 6);
+    this.ctx.lineTo(x + 3.5, yTop + 6);
     this.ctx.closePath();
     this.ctx.fill();
 
-    // Flèche bas
+    // Pointe bas
     this.ctx.beginPath();
     this.ctx.moveTo(x, yBottom);
-    this.ctx.lineTo(x - 4, yBottom - 7);
-    this.ctx.lineTo(x + 4, yBottom - 7);
+    this.ctx.lineTo(x - 3.5, yBottom - 6);
+    this.ctx.lineTo(x + 3.5, yBottom - 6);
     this.ctx.closePath();
     this.ctx.fill();
 
-    // Cartouche étiquette
+    // Cartouche texte
     const midY = (yTop + yBottom) * 0.5;
     this.ctx.font = "bold 11px sans-serif";
-    const textW = this.ctx.measureText(label).width;
-    const badgeW = textW + 16;
-    const badgeH = 22;
+    const text = `${kmLabel} (${fullLabel})`;
+    const textW = this.ctx.measureText(text).width;
+    const badgeW = textW + 14;
+    const badgeH = 20;
 
-    this.ctx.fillStyle = bgBadgeColor;
+    this.ctx.fillStyle = "rgba(15, 23, 42, 0.9)";
     this.ctx.strokeStyle = color;
-    this.ctx.lineWidth = 1.4;
+    this.ctx.lineWidth = 1.2;
     this.ctx.beginPath();
     this.ctx.roundRect(x - badgeW * 0.5, midY - badgeH * 0.5, badgeW, badgeH, 4);
     this.ctx.fill();
@@ -1280,11 +1314,12 @@ class TectoniqueSimulation {
     this.ctx.fillStyle = "#ffffff";
     this.ctx.textAlign = "center";
     this.ctx.textBaseline = "middle";
-    this.ctx.fillText(label, x, midY);
+    this.ctx.fillText(text, x, midY);
 
     this.ctx.restore();
   }
 
+  // Trait sombre de faille normale dans la roche
   drawInternalFaultLine(x1, y1, x2, y2) {
     this.ctx.strokeStyle = "rgba(40, 10, 5, 0.75)";
     this.ctx.lineWidth = 1.8;
@@ -1294,97 +1329,25 @@ class TectoniqueSimulation {
     this.ctx.stroke();
   }
 
-  // Basaltes et dorsale océanique (colonnes prismatiques gris foncé au centre)
-  drawBasalticCrustAndRidge(xc, baseY, spread, stage, P) {
+  // Flèche rouge avec pointe désignant les légendes (dorsale, sédiments)
+  drawRedPointerArrow(x1, y1, x2, y2) {
     this.ctx.save();
-    this.ctx.fillStyle = "#262626"; // Anthracite très sombre des basaltes
-    this.ctx.strokeStyle = "#171717";
-    this.ctx.lineWidth = 1.5;
+    this.ctx.strokeStyle = "#dc2626"; // Rouge vif
+    this.ctx.fillStyle = "#dc2626";
+    this.ctx.lineWidth = 1.8;
 
-    const ridgeH = (stage === 3) ? 55 : 35; // Plus haute au stade mature
-    const ridgeTopY = baseY - ridgeH;
-
-    // Tracé des colonnes / orgues basaltiques au centre
     this.ctx.beginPath();
-    this.ctx.moveTo(xc - spread, baseY + 6);
-
-    // Pente gauche de la dorsale
-    const colCount = Math.min(24, Math.max(6, Math.floor(spread / 12)));
-    for (let c = -colCount; c <= colCount; c++) {
-      const bx = xc + (c / colCount) * spread;
-      // Relief triangulaire culminant au centre avec encoche axiale
-      const distRatio = 1 - Math.abs(c / colCount);
-      let colTopY = baseY - distRatio * ridgeH;
-      // Petite encoche pour le rift axial au centre exact
-      if (Math.abs(c) <= 1 && stage === 3) colTopY += 8;
-
-      this.ctx.lineTo(bx, colTopY);
-    }
-
-    this.ctx.lineTo(xc + spread, baseY + 6);
-    this.ctx.closePath();
-    this.ctx.fill();
+    this.ctx.moveTo(x1, y1);
+    this.ctx.lineTo(x2, y2);
     this.ctx.stroke();
 
-    // Tracé des prismes verticaux (colonnes de basalte)
-    this.ctx.strokeStyle = "rgba(100, 116, 139, 0.45)";
-    this.ctx.lineWidth = 1.2;
-    for (let c = -colCount + 1; c < colCount; c++) {
-      const bx = xc + (c / colCount) * spread;
-      const distRatio = 1 - Math.abs(c / colCount);
-      const topCol = baseY - distRatio * ridgeH;
-      this.ctx.beginPath();
-      this.ctx.moveTo(bx, topCol);
-      this.ctx.lineTo(bx, baseY + 4);
-      this.ctx.stroke();
-    }
-
-    // Magma liquide à l'axe de la dorsale (volcanisme effusif sous l'eau de mer)
-    const riftTopY = baseY - ridgeH + (stage === 3 ? 8 : 0);
-    this.ctx.fillStyle = "#ef4444";
+    const angle = Math.atan2(y2 - y1, x2 - x1);
     this.ctx.beginPath();
-    this.ctx.arc(xc, riftTopY + 3, 4.5, 0, Math.PI * 2);
-    this.ctx.fill();
-
-    // Petites gouttelettes / pillow-lavas en formation
-    const bubblePhase = (this.time * 5) % 1;
-    this.ctx.fillStyle = "rgba(251, 146, 60, 0.85)";
-    this.ctx.beginPath();
-    this.ctx.arc(xc - 3.5, riftTopY - bubblePhase * 10, 2, 0, Math.PI * 2);
-    this.ctx.arc(xc + 3.5, riftTopY - ((bubblePhase + 0.5) % 1) * 10, 2, 0, Math.PI * 2);
-    this.ctx.fill();
-
-    this.ctx.restore();
-  }
-
-  // Sédiments jaunes biseautés (nuls à la dorsale, épais vers les marges passives)
-  drawSedimentLayers(xc, bLeftX, bRightX, baseY, stage, P) {
-    this.ctx.save();
-    this.ctx.fillStyle = "#fde047"; // Jaune sable vif du schéma
-    this.ctx.strokeStyle = "#eab308";
-    this.ctx.lineWidth = 1.2;
-
-    const sedThick = (stage === 3) ? 26 : 14;
-
-    // Sédiments côté gauche
-    const leftSedW = Math.max(10, (xc - bLeftX) * 0.55);
-    this.ctx.beginPath();
-    this.ctx.moveTo(bLeftX + 5, baseY - 4);
-    this.ctx.lineTo(bLeftX + 5, baseY - 4 - sedThick);
-    this.ctx.lineTo(xc - 30, baseY - 4); // S'amincit en biseau vers la dorsale
+    this.ctx.moveTo(x2, y2);
+    this.ctx.lineTo(x2 - Math.cos(angle - 0.4) * 8, y2 - Math.sin(angle - 0.4) * 8);
+    this.ctx.lineTo(x2 - Math.cos(angle + 0.4) * 8, y2 - Math.sin(angle + 0.4) * 8);
     this.ctx.closePath();
     this.ctx.fill();
-    this.ctx.stroke();
-
-    // Sédiments côté droit
-    this.ctx.beginPath();
-    this.ctx.moveTo(bRightX - 5, baseY - 4);
-    this.ctx.lineTo(bRightX - 5, baseY - 4 - sedThick);
-    this.ctx.lineTo(xc + 30, baseY - 4); // S'amincit en biseau vers la dorsale
-    this.ctx.closePath();
-    this.ctx.fill();
-    this.ctx.stroke();
-
     this.ctx.restore();
   }
 
@@ -1395,13 +1358,12 @@ class TectoniqueSimulation {
     this.ctx.fillStyle = "#000000";
     this.ctx.lineWidth = 2.5;
 
-    // Flèche courbe gauche : monte puis tourne vers la gauche
+    // Flèche gauche
     this.ctx.beginPath();
-    this.ctx.moveTo(xc - 4, y + 18);
+    this.ctx.moveTo(xc - 4, y + 16);
     this.ctx.quadraticCurveTo(xc - 8, y, xc - 36, y);
     this.ctx.stroke();
 
-    // Pointe gauche
     this.ctx.beginPath();
     this.ctx.moveTo(xc - 38, y);
     this.ctx.lineTo(xc - 28, y - 5);
@@ -1409,13 +1371,12 @@ class TectoniqueSimulation {
     this.ctx.closePath();
     this.ctx.fill();
 
-    // Flèche courbe droite : monte puis tourne vers la droite
+    // Flèche droite
     this.ctx.beginPath();
-    this.ctx.moveTo(xc + 4, y + 18);
+    this.ctx.moveTo(xc + 4, y + 16);
     this.ctx.quadraticCurveTo(xc + 8, y, xc + 36, y);
     this.ctx.stroke();
 
-    // Pointe droite
     this.ctx.beginPath();
     this.ctx.moveTo(xc + 38, y);
     this.ctx.lineTo(xc + 28, y - 5);
@@ -1426,11 +1387,12 @@ class TectoniqueSimulation {
     this.ctx.restore();
   }
 
+  // Flèche noire horizontale d'extension dans la croûte (← ou →)
   drawHorizontalBlackArrow(x, y, len) {
     this.ctx.save();
     this.ctx.strokeStyle = "#000000";
     this.ctx.fillStyle = "#000000";
-    this.ctx.lineWidth = 2.5;
+    this.ctx.lineWidth = 2.4;
 
     this.ctx.beginPath();
     this.ctx.moveTo(x, y);
@@ -1447,367 +1409,6 @@ class TectoniqueSimulation {
     this.ctx.restore();
   }
 
-  // Annotations exactes du Stade 1 (Rifting continental)
-  drawStage1Annotations(xc, topY, bLeftX, bRightX) {
-    this.ctx.save();
-    this.ctx.font = "14px Georgia, serif";
-
-    // 1. Bombement topographique (courbe en pointillés au sommet)
-    this.ctx.strokeStyle = "rgba(255, 255, 255, 0.75)";
-    this.ctx.setLineDash([4, 4]);
-    this.ctx.lineWidth = 1.8;
-    this.ctx.beginPath();
-    this.ctx.moveTo(bLeftX - 35, topY);
-    this.ctx.quadraticCurveTo(xc, topY - 26, bRightX + 35, topY);
-    this.ctx.stroke();
-    this.ctx.setLineDash([]);
-
-    this.ctx.fillStyle = "#ffffff";
-    this.ctx.textAlign = "center";
-    this.ctx.fillText("Bombement topographique", xc, topY - 32);
-
-    // 2. Épaulements
-    this.ctx.fillStyle = "#1e1e1e";
-    this.ctx.fillText("Épaulement", bLeftX - 35, topY + 16);
-    this.ctx.fillText("Épaulement", bRightX + 35, topY + 16);
-
-    // 3. Subsidence tectonique et thermique
-    this.ctx.fillStyle = "#ffffff";
-    this.ctx.fillText("Subsidence", xc, topY + 48);
-    this.ctx.fillText("tectonique et thermique", xc, topY + 66);
-
-    this.ctx.restore();
-  }
-
-  // Annotations exactes du Stade 2 (Stade jeune océan)
-  drawStage2Annotations(xc, topY, bLeftX, bRightX) {
-    this.ctx.save();
-    this.ctx.font = "bold 15px Georgia, serif";
-    this.ctx.fillStyle = "#ffffff";
-    this.ctx.textAlign = "center";
-
-    // Mot "Basaltes" sur les blocs basaltiques au centre
-    this.ctx.fillText("Basaltes", xc, topY + 95);
-
-    this.ctx.restore();
-  }
-
-  // Annotations exactes du Stade 3 (Stade océan mature)
-  drawStage3Annotations(xc, topY, bLeftX, bRightX, totalW) {
-    this.ctx.save();
-    this.ctx.font = "15px Georgia, serif";
-
-    // 1. "Dorsale océanique" avec flèche rouge
-    this.ctx.fillStyle = "#ffffff";
-    this.ctx.textAlign = "right";
-    this.ctx.fillText("Dorsale océanique", xc - 30, topY + 20);
-    this.drawRedPointerArrow(xc - 25, topY + 23, xc - 4, topY + 48);
-
-    // 2. "Sédiments" avec flèche rouge
-    this.ctx.textAlign = "left";
-    this.ctx.fillText("Sédiments", xc + 75, topY + 24);
-    this.drawRedPointerArrow(xc + 72, topY + 27, xc + 52, topY + 54);
-
-    // 3. "Croûte" sur le continent droit
-    this.ctx.fillStyle = "#ffffff";
-    this.ctx.textAlign = "center";
-    this.ctx.fillText("Croûte", bRightX + 50, topY + 70);
-
-    this.ctx.restore();
-  }
-
-  drawRedPointerArrow(x1, y1, x2, y2) {
-    this.ctx.save();
-    this.ctx.strokeStyle = "#dc2626"; // Rouge vif
-    this.ctx.fillStyle = "#dc2626";
-    this.ctx.lineWidth = 1.8;
-
-    this.ctx.beginPath();
-    this.ctx.moveTo(x1, y1);
-    this.ctx.lineTo(x2, y2);
-    this.ctx.stroke();
-
-    // Pointe
-    const angle = Math.atan2(y2 - y1, x2 - x1);
-    this.ctx.beginPath();
-    this.ctx.moveTo(x2, y2);
-    this.ctx.lineTo(x2 - Math.cos(angle - 0.4) * 8, y2 - Math.sin(angle - 0.4) * 8);
-    this.ctx.lineTo(x2 - Math.cos(angle + 0.4) * 8, y2 - Math.sin(angle + 0.4) * 8);
-    this.ctx.closePath();
-    this.ctx.fill();
-
-    this.ctx.restore();
-  }
-
-  // Tracé d'une strate de la croûte épousant le profil topographique du rift
-  drawCrustLayer(xc, riftHalfW, creteDist, yCrete, yRift, thickness, w, h) {
-    this.ctx.beginPath();
-    // Bord gauche
-    this.ctx.moveTo(0, yCrete + 40);
-    this.ctx.lineTo(xc - creteDist, yCrete); // Crête gauche
-    this.ctx.lineTo(xc - riftHalfW, yRift);  // Fond gauche du rift
-    this.ctx.lineTo(xc + riftHalfW, yRift);  // Fond droit du rift
-    this.ctx.lineTo(xc + creteDist, yCrete); // Crête droite
-    this.ctx.lineTo(w, yCrete + 40);         // Bord droit
-
-    // Épaisseur de la strate
-    this.ctx.lineTo(w, yCrete + 40 + thickness);
-    this.ctx.lineTo(xc + creteDist, yCrete + thickness);
-    this.ctx.lineTo(xc + riftHalfW, yRift + thickness);
-    this.ctx.lineTo(xc - riftHalfW, yRift + thickness);
-    this.ctx.lineTo(xc - creteDist, yCrete + thickness);
-    this.ctx.lineTo(0, yCrete + 40 + thickness);
-    this.ctx.closePath();
-    this.ctx.fill();
-    this.ctx.stroke();
-  }
-
-  // Textures des coussins de basalte (Pillow-lavas) qui défilent symétriquement
-  drawPillowLavaSurface(xc, riftHalfW, creteDist, yCrete, yRift, w, drift) {
-    this.ctx.save();
-    this.ctx.fillStyle = "#1e293b";
-    this.ctx.strokeStyle = "#475569";
-    this.ctx.lineWidth = 1.2;
-
-    // Coussins à gauche (s'écartent vers la gauche)
-    for (let x = xc - 20; x > 0; x -= 22) {
-      const movedX = x - (drift % 22);
-      const y = this.getTopoY(movedX, xc, riftHalfW, creteDist, yCrete, yRift) + 8;
-      this.ctx.beginPath();
-      this.ctx.ellipse(movedX, y, 10, 6, -0.1, 0, Math.PI * 2);
-      this.ctx.fill();
-      this.ctx.stroke();
-    }
-
-    // Coussins à droite (s'écartent vers la droite)
-    for (let x = xc + 20; x < w; x += 22) {
-      const movedX = x + (drift % 22);
-      const y = this.getTopoY(movedX, xc, riftHalfW, creteDist, yCrete, yRift) + 8;
-      this.ctx.beginPath();
-      this.ctx.ellipse(movedX, y, 10, 6, 0.1, 0, Math.PI * 2);
-      this.ctx.fill();
-      this.ctx.stroke();
-    }
-    this.ctx.restore();
-  }
-
-  // Texture des filons verticaux de basalte (complexe filonien)
-  drawDykeSheetTexture(xc, startY, thick, w, drift) {
-    this.ctx.save();
-    this.ctx.strokeStyle = "rgba(71, 85, 105, 0.7)";
-    this.ctx.lineWidth = 2;
-
-    // Filons côté gauche
-    for (let x = xc - 15; x > 0; x -= 14) {
-      const mx = x - (drift % 14);
-      this.ctx.beginPath();
-      this.ctx.moveTo(mx, startY + 2);
-      this.ctx.lineTo(mx, startY + thick - 2);
-      this.ctx.stroke();
-    }
-
-    // Filons côté droit
-    for (let x = xc + 15; x < w; x += 14) {
-      const mx = x + (drift % 14);
-      this.ctx.beginPath();
-      this.ctx.moveTo(mx, startY + 2);
-      this.ctx.lineTo(mx, startY + thick - 2);
-      this.ctx.stroke();
-    }
-    this.ctx.restore();
-  }
-
-  // Texture grenue des gabbros (refroidissement lent en profondeur)
-  drawGabbroTexture(xc, startY, thick, w, drift) {
-    this.ctx.save();
-    this.ctx.fillStyle = "rgba(74, 222, 128, 0.25)";
-    for (let i = 0; i < 40; i++) {
-      const gx1 = (i * 24 - drift) % (w * 0.45);
-      const gy1 = startY + (i * 17) % (thick - 10);
-      if (gx1 > 10) this.ctx.fillRect(xc - gx1, gy1, 4, 3);
-
-      const gx2 = (i * 24 + drift) % (w * 0.45);
-      const gy2 = startY + (i * 19) % (thick - 10);
-      this.ctx.fillRect(xc + gx2, gy2, 4, 3);
-    }
-    this.ctx.restore();
-  }
-
-  // Manteau lithosphérique rigide sous la croûte qui s'épaissit en s'éloignant
-  drawLithosphericMantleWedge(xc, crustBaseY, w, h) {
-    this.ctx.save();
-    this.ctx.fillStyle = "#1e3a2b";
-    this.ctx.strokeStyle = "#14281e";
-    this.ctx.lineWidth = 1.5;
-
-    // Côté gauche
-    this.ctx.beginPath();
-    this.ctx.moveTo(xc - 75, crustBaseY);
-    this.ctx.lineTo(0, crustBaseY);
-    this.ctx.lineTo(0, h * 0.58);
-    this.ctx.lineTo(xc - 110, crustBaseY + 20);
-    this.ctx.closePath();
-    this.ctx.fill();
-    this.ctx.stroke();
-
-    // Côté droit
-    this.ctx.beginPath();
-    this.ctx.moveTo(xc + 75, crustBaseY);
-    this.ctx.lineTo(w, crustBaseY);
-    this.ctx.lineTo(w, h * 0.58);
-    this.ctx.lineTo(xc + 110, crustBaseY + 20);
-    this.ctx.closePath();
-    this.ctx.fill();
-    this.ctx.stroke();
-    this.ctx.restore();
-  }
-
-  // Tracé des failles normales le long desquelles les blocs s'affaissent
-  drawNormalFaultsSystem(xc, riftHalfW, creteDist, yCrete, yRift) {
-    this.ctx.save();
-    this.ctx.strokeStyle = "#f87171";
-    this.ctx.lineWidth = 2.5;
-
-    // Faille normale principale bordière GAUCHE (inclinée vers l'axe à 60°)
-    const f1X1 = xc - creteDist + 40;
-    const f1Y1 = yCrete;
-    const f1X2 = xc - riftHalfW + 10;
-    const f1Y2 = yRift + 60;
-    this.drawFaultWithHachures(f1X1, f1Y1, f1X2, f1Y2, -1);
-
-    // Faille normale principale bordière DROITE (inclinée vers l'axe à 60°)
-    const f2X1 = xc + creteDist - 40;
-    const f2Y1 = yCrete;
-    const f2X2 = xc + riftHalfW - 10;
-    const f2Y2 = yRift + 60;
-    this.drawFaultWithHachures(f2X1, f2Y1, f2X2, f2Y2, 1);
-
-    // Flèches d'affaissement du compartiment affaissé (bloc central du rift)
-    this.drawSlipArrow(xc - 105, yRift - 5, 1, 1);
-    this.drawSlipArrow(xc + 105, yRift - 5, -1, 1);
-
-    this.ctx.restore();
-  }
-
-  drawFaultWithHachures(x1, y1, x2, y2, dir) {
-    this.ctx.beginPath();
-    this.ctx.moveTo(x1, y1);
-    this.ctx.lineTo(x2, y2);
-    this.ctx.stroke();
-
-    // Tirets de faille normale (barbules indiquant le compartiment affaissé)
-    const steps = 6;
-    for (let i = 1; i < steps; i++) {
-      const fx = x1 + (x2 - x1) * (i / steps);
-      const fy = y1 + (y2 - y1) * (i / steps);
-      this.ctx.beginPath();
-      this.ctx.moveTo(fx, fy);
-      this.ctx.lineTo(fx + dir * 8, fy + 4);
-      this.ctx.stroke();
-    }
-  }
-
-  drawSlipArrow(x, y, dx, dy) {
-    this.ctx.fillStyle = "#f87171";
-    this.ctx.beginPath();
-    this.ctx.moveTo(x, y);
-    this.ctx.lineTo(x + dx * 10, y + dy * 18);
-    this.ctx.lineTo(x + dx * 18, y + dy * 14);
-    this.ctx.closePath();
-    this.ctx.fill();
-  }
-
-  // Fumeur noir hydrothermal crachant des volutes minéralisées à 350°C
-  drawBlackSmoker(x, y, dir) {
-    // Cheminée minérale de sulfures
-    this.ctx.fillStyle = "#334155";
-    this.ctx.strokeStyle = "#0f172a";
-    this.ctx.lineWidth = 1.5;
-    this.ctx.beginPath();
-    this.ctx.moveTo(x - 5, y);
-    this.ctx.lineTo(x - 3, y - 16);
-    this.ctx.lineTo(x + 3, y - 16);
-    this.ctx.lineTo(x + 5, y);
-    this.ctx.closePath();
-    this.ctx.fill();
-    this.ctx.stroke();
-
-    // Panache noir de fluides chauds montant dans l'eau
-    this.ctx.fillStyle = "rgba(30, 41, 59, 0.75)";
-    for (let s = 0; s < 6; s++) {
-      const py = y - 18 - s * 8 - ((this.time * 25 + s * 10) % 35);
-      const px = x + dir * (s * 3) + Math.sin(this.time * 4 + s) * 4;
-      this.ctx.beginPath();
-      this.ctx.arc(px, py, 4 + s * 1.5, 0, Math.PI * 2);
-      this.ctx.fill();
-    }
-  }
-
-  // Calcul d'altitude topographique sur le profil de la dorsale
-  getTopoY(x, xc, riftHalfW, creteDist, yCrete, yRift) {
-    const dist = Math.abs(x - xc);
-    if (dist < riftHalfW) return yRift;
-    if (dist < creteDist) {
-      const f = (dist - riftHalfW) / (creteDist - riftHalfW);
-      return yRift - f * (yRift - yCrete);
-    }
-    return yCrete + ((dist - creteDist) / 300) * 40;
-  }
-
-  // Flèches de divergence symétrique animées
-  drawDivergenceVectors(xc, y, w) {
-    this.ctx.save();
-    const arrowLen = 50;
-
-    // Flèche gauche
-    this.drawBigArrow(xc - 110, y, -arrowLen, "⟵ Divergence (~2,5 cm/an)");
-
-    // Flèche droite
-    this.drawBigArrow(xc + 110, y, arrowLen, "Divergence (~2,5 cm/an) ⟶");
-    this.ctx.restore();
-  }
-
-  drawBigArrow(x, y, len, label) {
-    this.ctx.strokeStyle = "#38bdf8";
-    this.ctx.lineWidth = 3.5;
-    this.ctx.beginPath();
-    this.ctx.moveTo(x, y);
-    this.ctx.lineTo(x + len, y);
-    this.ctx.stroke();
-
-    const dir = len > 0 ? 1 : -1;
-    this.ctx.fillStyle = "#38bdf8";
-    this.ctx.beginPath();
-    this.ctx.moveTo(x + len + dir * 6, y);
-    this.ctx.lineTo(x + len - dir * 4, y - 6);
-    this.ctx.lineTo(x + len - dir * 4, y + 6);
-    this.ctx.closePath();
-    this.ctx.fill();
-
-    this.ctx.fillStyle = "#ffffff";
-    this.ctx.font = "bold 10px sans-serif";
-    this.ctx.textAlign = dir > 0 ? "left" : "right";
-    this.ctx.fillText(label, x + (dir > 0 ? 12 : -12), y - 10);
-  }
-
-  // Badges d'âge de la croûte océanique
-  drawCrustAgeBadges(xc, y, w) {
-    this.ctx.save();
-    this.ctx.font = "bold 9px monospace";
-    this.ctx.fillStyle = "#94a3b8";
-
-    // Axe : 0 Ma
-    this.ctx.fillText("0 Ma (Actuel)", xc - 30, y);
-
-    // 1 Ma
-    this.ctx.fillText("~1 Ma", xc - 180, y);
-    this.ctx.fillText("~1 Ma", xc + 150, y);
-
-    // 2 Ma
-    this.ctx.fillText("~2 Ma", xc - 320, y);
-    this.ctx.fillText("~2 Ma", xc + 280, y);
-    this.ctx.restore();
-  }
 
   // =========================================================================
   // VUE 3 : ZOOM 2 - SUBDUCTION & VOLCANISME EXPLOSIF
