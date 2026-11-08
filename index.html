@@ -36,24 +36,24 @@
   <!-- Onglets de sélection des Vues / Zooms -->
   <nav class="view-tabs" role="tablist">
     <button class="tab-btn active" data-view="global">
-      <span class="tab-num">Vue Générale</span>
-      <span class="tab-title">🌍 Le Moteur Thermique Planétaire</span>
-      <span class="tab-desc">Convection, lithosphère & asthénosphère</span>
+      <span class="tab-num">Vue Globale</span>
+      <span class="tab-title">🌍 Coupe Hémisphérique de la Terre</span>
+      <span class="tab-desc">Cellules de convection (Noyau ➔ Asthénosphère ➔ Lithosphère)</span>
     </button>
     <button class="tab-btn" data-view="divergence">
       <span class="tab-num">Zoom 1</span>
-      <span class="tab-title">🌋 Divergence & Dorsale Océanique</span>
-      <span class="tab-desc">Rifting, fracture continentale & volcanisme effusif</span>
+      <span class="tab-title">🌋 Remontée Chaude & Dorsale</span>
+      <span class="tab-desc">Étirement continental & création de lithosphère océanique</span>
     </button>
     <button class="tab-btn" data-view="subduction">
       <span class="tab-num">Zoom 2</span>
-      <span class="tab-title">🔥 Subduction & Volcanisme Explosif</span>
-      <span class="tab-desc">Plongement de la plaque dense & magma visqueux</span>
+      <span class="tab-title">🔥 Descente Chaude & Subduction</span>
+      <span class="tab-desc">Plongement de plaque dense & volcanisme explosif</span>
     </button>
     <button class="tab-btn" data-view="seisme">
       <span class="tab-num">Zoom 3</span>
       <span class="tab-title">📉 Séisme, Ondes & Sismogrammes</span>
-      <span class="tab-desc">Foyer, épicentre, dégâts & enregistrements différés</span>
+      <span class="tab-desc">Foyer, épicentre, dégâts & enregistrements différés (Δt)</span>
     </button>
   </nav>
 
@@ -135,19 +135,19 @@
         </div>
       </section>
 
-      <!-- Cartouche d'aide à la compréhension des roches -->
+      <!-- Cartouche d'aide à la compréhension des roches et des échelles -->
       <section class="panel-section properties-section">
-        <h3>Propriétés des enveloppes de la Terre</h3>
+        <h3>Échelles des enveloppes de la Terre</h3>
         <div class="layer-comparison-table">
           <div class="layer-item litho-continentale">
             <div class="layer-color-bar"></div>
             <div class="layer-details">
               <strong>Lithosphère continentale</strong>
               <div class="layer-stats">
-                <span>Épaisseur : <b>~150 km</b></span>
-                <span class="prop-badge rigid">Rigide et cassante</span>
+                <span>Profondeur : <b>0 à 150 km</b></span>
+                <span class="prop-badge rigid">Rigide / Casse</span>
               </div>
-              <p>Roches solides (granite, roches mantelliques froides). Peut casser et provoquer des séismes.</p>
+              <p>Roches solides (granite + manteau lithosphérique froid). Seule enveloppe qui casse (séismes).</p>
             </div>
           </div>
 
@@ -156,34 +156,34 @@
             <div class="layer-details">
               <strong>Lithosphère océanique</strong>
               <div class="layer-stats">
-                <span>Épaisseur : <b>~100 km</b></span>
-                <span class="prop-badge rigid">Rigide et cassante</span>
+                <span>Profondeur : <b>0 à 100 km</b></span>
+                <span class="prop-badge rigid">Rigide / Dense</span>
               </div>
-              <p>Plus mince, dense en vieillissant (basalte, gabbro, péridotite froide). Peut plonger en subduction.</p>
+              <p>Créée à la dorsale (100 km). En s'éloignant, elle refroidit, devient plus dense et plonge.</p>
             </div>
           </div>
 
           <div class="layer-item asthenosphere">
             <div class="layer-color-bar"></div>
             <div class="layer-details">
-              <strong>Asthénosphère</strong>
+              <strong>Asthénosphère (Manteau convectif)</strong>
               <div class="layer-stats">
-                <span>Profondeur : <b>jusqu'à ~700 km</b></span>
-                <span class="prop-badge ductile">Moins rigide (ductile)</span>
+                <span>Profondeur : <b>100 à 2900 km</b></span>
+                <span class="prop-badge ductile">Ductile (flue)</span>
               </div>
-              <p>Roches solides mais chaudes et déformables plastiquement (flue très lentement). Ne casse pas !</p>
+              <p>Roches solides mais chaudes et déformables. Siège des cellules de convection lentes (cm/an).</p>
             </div>
           </div>
 
           <div class="layer-item noyau">
             <div class="layer-color-bar"></div>
             <div class="layer-details">
-              <strong>Manteau profond & Noyau</strong>
+              <strong>Noyau terrestre</strong>
               <div class="layer-stats">
-                <span>Source de chaleur</span>
-                <span class="prop-badge hot">Très chaud (~3500-5000°C)</span>
+                <span>Profondeur : <b>2900 à 6371 km</b></span>
+                <span class="prop-badge hot">Chaud (~4000°C)</span>
               </div>
-              <p>Chauffe la base du manteau : la matière chaude devient moins dense et monte (courant ascendant).</p>
+              <p>La surface du noyau chauffe la base du manteau : la matière chaude moins dense monte !</p>
             </div>
           </div>
         </div>

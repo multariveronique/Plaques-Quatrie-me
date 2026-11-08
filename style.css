@@ -986,6 +986,81 @@ body {
   gap: 10px;
 }
 
+/* Pastilles d'appel de Zoom sur le Canvas */
+.canvas-zoom-pill {
+  position: absolute;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1px solid var(--accent-blue);
+  color: #fff;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.6);
+  transition: all 0.25s ease;
+  z-index: 4;
+}
+
+.canvas-zoom-pill:hover {
+  transform: scale(1.08);
+  background: #1e3a8a;
+  border-color: #60a5fa;
+  box-shadow: 0 0 15px rgba(96, 165, 250, 0.5);
+}
+
+/* Échelle graphique kilométrique sur le Canvas */
+.scale-legend-box {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: rgba(14, 20, 33, 0.88);
+  backdrop-filter: blur(8px);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-size: 0.78rem;
+  color: var(--text-main);
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.scale-legend-title {
+  font-weight: 700;
+  color: var(--accent-blue);
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  letter-spacing: 0.5px;
+}
+
+.scale-bar-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.scale-metric-line {
+  height: 4px;
+  background: #38bdf8;
+  position: relative;
+}
+
+.scale-metric-line::before, .scale-metric-line::after {
+  content: "";
+  position: absolute;
+  width: 1px;
+  height: 8px;
+  background: #38bdf8;
+  top: -2px;
+}
+.scale-metric-line::before { left: 0; }
+.scale-metric-line::after { right: 0; }
+
 /* === RESPONSIVE DESIGN === */
 @media (max-width: 1024px) {
   .sim-wrapper {
