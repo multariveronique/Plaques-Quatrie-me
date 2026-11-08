@@ -324,8 +324,9 @@ body {
 .sim-wrapper.full-width {
   flex: 1;
   display: flex;
-  width: 100vw;
-  height: calc(100vh - 180px);
+  width: 100%;
+  min-height: 520px;
+  height: calc(100vh - 190px);
   overflow: hidden;
   position: relative;
 }
@@ -333,6 +334,7 @@ body {
 .canvas-container {
   width: 100%;
   height: 100%;
+  min-height: 520px;
   position: relative;
   background-color: #050811;
   overflow: hidden;

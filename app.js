@@ -209,14 +209,34 @@ class TectoniqueSimulation {
   }
 
   resizeCanvas() {
-    const rect = this.canvas.parentElement.getBoundingClientRect();
+    const rect = this.canvas.parentElement ? this.canvas.parentElement.getBoundingClientRect() : null;
     const dpr = window.devicePixelRatio || 1;
-    this.canvas.width = rect.width * dpr;
-    this.canvas.height = rect.height * dpr;
+    const w = (rect && rect.width > 200) ? rect.width : (window.innerWidth || 1024);
+    const h = (rect && rect.height > 200) ? rect.height : ((window.innerHeight - 200) || 600);
+    this.canvas.width = w * dpr;
+    this.canvas.height = h * dpr;
     this.ctx.resetTransform();
     this.ctx.scale(dpr, dpr);
-    this.width = rect.width;
-    this.height = rect.height;
+    this.width = w;
+    this.height = h;
+  }
+
+  getHemiGeometry() {
+    const w = this.width;
+    const h = this.height;
+    const cx = w * 0.5;
+    const cy = h * 0.76;
+    const R = Math.min(w * 0.36, h * 0.48);
+    return { cx, cy, R };
+  }
+
+  getHemiPillsCoords() {
+    const { cx, cy, R } = this.getHemiGeometry();
+    return {
+      z1: { x: cx, y: cy - R - 32, label: "ZOOM 1" },
+      z2: { x: cx + Math.cos(-Math.PI * 0.22) * (R + 45), y: cy + Math.sin(-Math.PI * 0.22) * (R + 45), label: "ZOOM 2" },
+      z3: { x: cx + Math.cos(-Math.PI * 0.78) * (R + 45), y: cy + Math.sin(-Math.PI * 0.78) * (R + 45), label: "ZOOM 3" }
+    };
   }
 
   initEventListeners() {
@@ -257,34 +277,43 @@ class TectoniqueSimulation {
         const rect = this.canvas.getBoundingClientRect();
         const mx = e.clientX - rect.left;
         const my = e.clientY - rect.top;
+        const pills = this.getHemiPillsCoords();
 
-        const cx = this.width * 0.5;
-        const cy = this.height * 0.88;
-        const R = Math.min(this.width * 0.44, this.height * 0.70);
-
-        // Sommet (Dorsale / Zoom 1)
-        const dorsaleX = cx;
-        const dorsaleY = cy - R;
-        if (Math.hypot(mx - dorsaleX, my - (dorsaleY + 20)) < 70) {
+        // Clic sur Zoom 1 (Sommet)
+        if (Math.hypot(mx - pills.z1.x, my - pills.z1.y) < 85) {
           this.switchView("divergence");
           return;
         }
 
-        // Flanc Droit (Subduction / Zoom 2)
-        const subX = cx + Math.cos(-Math.PI * 0.22) * R;
-        const subY = cy + Math.sin(-Math.PI * 0.22) * R;
-        if (Math.hypot(mx - subX, my - subY) < 70) {
+        // Clic sur Zoom 2 (Flanc Droit)
+        if (Math.hypot(mx - pills.z2.x, my - pills.z2.y) < 85) {
           this.switchView("subduction");
           return;
         }
 
-        // Flanc Gauche (Séismes / Zoom 3)
-        const seisX = cx + Math.cos(-Math.PI * 0.78) * R;
-        const seisY = cy + Math.sin(-Math.PI * 0.78) * R;
-        if (Math.hypot(mx - seisX, my - seisY) < 70) {
+        // Clic sur Zoom 3 (Flanc Gauche)
+        if (Math.hypot(mx - pills.z3.x, my - pills.z3.y) < 85) {
           this.switchView("seisme");
           return;
         }
+      }
+    });
+
+    // Survol souris pour changer le curseur en 'pointer' sur les pastilles
+    this.canvas.addEventListener("mousemove", (e) => {
+      if (this.currentView === "global") {
+        const rect = this.canvas.getBoundingClientRect();
+        const mx = e.clientX - rect.left;
+        const my = e.clientY - rect.top;
+        const pills = this.getHemiPillsCoords();
+
+        const onZ1 = Math.hypot(mx - pills.z1.x, my - pills.z1.y) < 85;
+        const onZ2 = Math.hypot(mx - pills.z2.x, my - pills.z2.y) < 85;
+        const onZ3 = Math.hypot(mx - pills.z3.x, my - pills.z3.y) < 85;
+
+        this.canvas.style.cursor = (onZ1 || onZ2 || onZ3) ? "pointer" : "default";
+      } else {
+        this.canvas.style.cursor = "default";
       }
     });
 
@@ -401,9 +430,9 @@ class TectoniqueSimulation {
     }
 
     if (viewName === "divergence") {
-      this.divergenceTime = 0;
+      this.divergenceProgress = 0.05;
       const slider = document.getElementById("divergenceSlider");
-      if (slider) slider.value = 0;
+      if (slider) slider.value = 5;
     }
 
     if (viewName === "seisme") {
@@ -551,9 +580,7 @@ class TectoniqueSimulation {
       this.ctx.fillRect(s.x * w, s.y * h * 0.75, s.size, s.size);
     });
 
-    const cx = w * 0.5;
-    const cy = h * 0.88;
-    const R = Math.min(w * 0.44, h * 0.70);
+    const { cx, cy, R } = this.getHemiGeometry();
 
     const rGraine = R * 0.191;
     const rNoyau = R * 0.545;
@@ -779,37 +806,31 @@ class TectoniqueSimulation {
 
   drawZoomPillsOnGlobe(cx, cy, R) {
     this.ctx.save();
-    const z1X = cx;
-    const z1Y = cy - R - 24;
-    this.drawInteractivePill(z1X, z1Y, "🔍 ZOOM 1 : DORSALE (Remontée)", "#ef4444", true);
+    const pills = this.getHemiPillsCoords();
 
-    const subAngle = -Math.PI * 0.25;
-    const z2X = cx + Math.cos(subAngle) * (R + 32);
-    const z2Y = cy + Math.sin(subAngle) * (R + 32);
-    this.drawInteractivePill(z2X, z2Y, "🔍 ZOOM 2 : SUBDUCTION (Descente)", "#0284c7", false);
+    this.drawInteractivePill(pills.z1.x, pills.z1.y, "👉 CLIQUER : ZOOM 1 (RIFT & DORSALE)", "#ef4444", true);
+    this.drawInteractivePill(pills.z2.x, pills.z2.y, "👉 CLIQUER : ZOOM 2 (SUBDUCTION)", "#0284c7", false);
+    this.drawInteractivePill(pills.z3.x, pills.z3.y, "👉 CLIQUER : ZOOM 3 (SÉISMES)", "#f59e0b", false);
 
-    const seisAngle = -Math.PI * 0.75;
-    const z3X = cx + Math.cos(seisAngle) * (R + 32);
-    const z3Y = cy + Math.sin(seisAngle) * (R + 32);
-    this.drawInteractivePill(z3X, z3Y, "🔍 ZOOM 3 : SÉISMES (Cassure)", "#f59e0b", false);
     this.ctx.restore();
   }
 
   drawInteractivePill(x, y, text, borderColor, isCentered) {
-    this.ctx.font = "bold 10px sans-serif";
+    this.ctx.save();
+    this.ctx.font = "bold 11px sans-serif";
     const textW = this.ctx.measureText(text).width;
-    const pillW = textW + 20;
-    const pillH = 26;
+    const pillW = textW + 22;
+    const pillH = 30;
     const startX = isCentered ? x - pillW * 0.5 : x;
     const startY = y - pillH * 0.5;
 
     const pulse = Math.sin(this.time * 4) * 2;
 
-    this.ctx.fillStyle = "rgba(15, 23, 42, 0.92)";
+    this.ctx.fillStyle = "rgba(10, 16, 28, 0.95)";
     this.ctx.strokeStyle = borderColor;
-    this.ctx.lineWidth = 1.8;
+    this.ctx.lineWidth = 2.2;
     this.ctx.beginPath();
-    this.ctx.roundRect(startX - pulse * 0.5, startY - pulse * 0.5, pillW + pulse, pillH + pulse, 13);
+    this.ctx.roundRect(startX - pulse * 0.5, startY - pulse * 0.5, pillW + pulse, pillH + pulse, 15);
     this.ctx.fill();
     this.ctx.stroke();
 
@@ -817,6 +838,7 @@ class TectoniqueSimulation {
     this.ctx.textAlign = "center";
     this.ctx.textBaseline = "middle";
     this.ctx.fillText(text, startX + pillW * 0.5, startY + pillH * 0.5);
+    this.ctx.restore();
   }
 
   drawHemiLabels(cx, cy, R, rNoyau, rGraine) {
@@ -2191,7 +2213,20 @@ class TectoniqueSimulation {
   }
 }
 
-// Initialisation dès que le DOM est prêt
-window.addEventListener("DOMContentLoaded", () => {
-  window.sim = new TectoniqueSimulation();
-});
+// Initialisation garantie dès le chargement
+function startSimApp() {
+  if (!window.sim) {
+    try {
+      window.sim = new TectoniqueSimulation();
+    } catch (e) {
+      console.error("Erreur de lancement TectoniqueSimulation:", e);
+    }
+  }
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", startSimApp);
+} else {
+  startSimApp();
+}
+window.addEventListener("load", startSimApp);

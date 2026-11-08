@@ -35,22 +35,22 @@
 
   <!-- Onglets de sélection des Vues / Zooms -->
   <nav class="view-tabs" role="tablist">
-    <button class="tab-btn active" data-view="global">
+    <button class="tab-btn active" data-view="global" id="tabGlobal">
       <span class="tab-num">Vue Globale</span>
       <span class="tab-title">🌍 Coupe Hémisphérique de la Terre</span>
       <span class="tab-desc">Cellules de convection (Noyau ➔ Asthénosphère ➔ Lithosphère)</span>
     </button>
-    <button class="tab-btn" data-view="divergence">
+    <button class="tab-btn" data-view="divergence" id="tabDivergence">
       <span class="tab-num">Zoom 1</span>
-      <span class="tab-title">🌋 Remontée Chaude & Dorsale</span>
-      <span class="tab-desc">Étirement continental & création de lithosphère océanique</span>
+      <span class="tab-title">🌋 Remontée Chaude & Rifting / Dorsale</span>
+      <span class="tab-desc">3 Stades : Rifting ➔ Jeune Océan ➔ Océan Mature</span>
     </button>
-    <button class="tab-btn" data-view="subduction">
+    <button class="tab-btn" data-view="subduction" id="tabSubduction">
       <span class="tab-num">Zoom 2</span>
       <span class="tab-title">🔥 Descente Chaude & Subduction</span>
       <span class="tab-desc">Plongement de plaque dense & volcanisme explosif</span>
     </button>
-    <button class="tab-btn" data-view="seisme">
+    <button class="tab-btn" data-view="seisme" id="tabSeisme">
       <span class="tab-num">Zoom 3</span>
       <span class="tab-title">📉 Séisme, Ondes & Sismogrammes</span>
       <span class="tab-desc">Foyer, épicentre, dégâts & enregistrements différés (Δt)</span>
