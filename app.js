@@ -1549,29 +1549,6 @@ class TectoniqueSimulation {
     this.ctx.restore();
   }
 
-    // Échelle métrique en profondeur
-    if (this.showGrid) {
-      this.drawZoomMetricScale(surfaceY, litho150H, 150);
-    }
-
-    // Légendes dynamiques explicatives
-    if (this.showLabels) {
-      this.drawBadge(blockLeftX * 0.5, surfaceY + 22, "BLOC CONTINENTAL 1", "Lithosphère continentale ~150 km", "#8b5e3c");
-      this.drawBadge(blockRightX + (w - blockRightX) * 0.5, surfaceY + 22, "BLOC CONTINENTAL 2", "Lithosphère continentale ~150 km", "#8b5e3c");
-
-      if (t < 15) {
-        this.drawBadge(centerX, surfaceY - 25, "1. ÉTIREMENT & AMINCISSEMENT", "Le continent de 150 km s'affine sous la chaleur", "#ef4444", true);
-      } else if (t < 30) {
-        this.drawBadge(centerX, surfaceY - 25, "2. RUPTURE & ENTRÉE DE LA MER", "Fossé d'effondrement inondé par l'eau de mer", "#0284c7", true);
-      } else {
-        this.drawBadge(centerX, surfaceY - 30, "DORSALE OCÉANIQUE (Évacuation de chaleur)", "Volcanisme effusif sous-marin (magma liquide fluide)", "#ef4444", true);
-        this.drawBadge(centerX, surfaceY + h * 0.14, "LITHOSPHÈRE OCÉANIQUE NÉOFORMÉE", "Épaisseur : 100 km (s'agrandit en continu)", "#1e4d6b", true);
-      }
-
-      this.drawBadge(centerX, asthBottom - 25, "ASTHÉNOSPHÈRE MOINS RIGIDE (Ductile)", "Courant ascendant chaud : matière moins dense monte", "#ea580c", true);
-    }
-  }
-
   // =========================================================================
   // VUE 3 : ZOOM 2 - SUBDUCTION & VOLCANISME EXPLOSIF
   // =========================================================================
