@@ -57,33 +57,54 @@
     </button>
   </nav>
 
-  <!-- Conteneur principal de la simulation -->
-  <main class="sim-wrapper">
-    <!-- Zone Canvas interactive -->
+  <!-- Bandeau Horizontal Supérieur : Pédagogie, Échelles & Timeline d'Évolution -->
+  <section class="horizontal-dashboard" id="topDashboard">
+    <div class="dash-summary">
+      <div class="dash-badge-row">
+        <span class="info-badge" id="infoBadge">Vue active</span>
+        <span class="dash-speed-indicator" id="dashSpeedIndicator">Vitesse divergence : <b>~3 cm/an</b></span>
+      </div>
+      <h2 id="infoTitle">Titre de l'animation</h2>
+      <p id="infoText">Explication scientifique détaillée adaptée aux élèves de 4ème.</p>
+    </div>
+
+    <!-- Contrôle de l'évolution temporelle continue pour les zooms (ex: 0 à 60 Ma) -->
+    <div class="dash-timeline-box" id="dashTimelineBox">
+      <div class="timeline-header">
+        <span class="timeline-title">⏱️ Évolution continue dans le temps</span>
+        <span class="timeline-value" id="timelineValue">Temps : 0 Ma</span>
+      </div>
+      <div class="timeline-slider-row">
+        <input type="range" id="divergenceSlider" min="0" max="60" value="0" step="0.5">
+      </div>
+      <div class="timeline-phases" id="timelinePhases">
+        <span class="phase-mark active" data-time="0">1. Continent 150 km</span>
+        <span class="phase-mark" data-time="20">2. Étirement / Rifting</span>
+        <span class="phase-mark" data-time="35">3. Rupture & Mer</span>
+        <span class="phase-mark" data-time="55">4. Dorsale & Océan 100 km</span>
+      </div>
+    </div>
+
+    <!-- Indicateurs d'enveloppes et d'échelles compacts -->
+    <div class="dash-scales-pills" id="infoIndicators">
+      <!-- Généré dynamiquement -->
+    </div>
+  </section>
+
+  <!-- Conteneur principal de la simulation : PLEINE LARGEUR -->
+  <main class="sim-wrapper full-width">
+    <!-- Zone Canvas interactive pleine largeur -->
     <div class="canvas-container" id="canvasContainer">
       <canvas id="simCanvas"></canvas>
       
-      <!-- Overlay explicatif contextuel flottant -->
-      <div class="info-card" id="infoCard">
-        <div class="info-card-header">
-          <span class="info-badge" id="infoBadge">Notion clé</span>
-          <button class="close-card-btn" id="btnCloseCard" title="Réduire l'explication">✕</button>
-        </div>
-        <h3 id="infoTitle">Titre de l'étape</h3>
-        <p id="infoText">Explication scientifique détaillée adaptée aux élèves de 4ème.</p>
-        <div class="info-indicators" id="infoIndicators">
-          <!-- Badges dynamiques (ex: épaisseur, température, rigidité) -->
-        </div>
-      </div>
-
-      <!-- Contrôles flottants sur le canvas -->
+      <!-- Contrôles flottants sur le canvas (en bas) -->
       <div class="canvas-controls">
         <div class="control-group">
           <button id="btnPlayPause" class="ctrl-btn play-btn" title="Lecture / Pause">
             <span id="playIcon">⏸</span> <span id="playLabel">Pause</span>
           </button>
           <button id="btnReset" class="ctrl-btn" title="Réinitialiser l'animation">
-            <span>↺</span> Réinitialiser
+            <span>↺</span> Recommencer
           </button>
           <div class="speed-selector">
             <label for="speedRange">Vitesse :</label>
@@ -98,17 +119,17 @@
           <label class="toggle-switch">
             <input type="checkbox" id="chkLabels" checked>
             <span class="slider"></span>
-            <span class="toggle-label">Afficher les légendes</span>
+            <span class="toggle-label">Légendes</span>
           </label>
           <label class="toggle-switch">
             <input type="checkbox" id="chkThermal" checked>
             <span class="slider"></span>
-            <span class="toggle-label">Flux de chaleur & convection</span>
+            <span class="toggle-label">Flux thermique</span>
           </label>
           <label class="toggle-switch">
             <input type="checkbox" id="chkGrid" checked>
             <span class="slider"></span>
-            <span class="toggle-label">Échelles & épaisseurs (km)</span>
+            <span class="toggle-label">Échelles (km)</span>
           </label>
         </div>
       </div>
@@ -120,117 +141,34 @@
         </button>
         <span class="trigger-hint">Cliquez pour libérer l'énergie accumulée sous les contraintes de compression</span>
       </div>
-    </div>
 
-    <!-- Panneau latéral : Légende interactive & guide pas-à-pas -->
-    <aside class="side-panel">
-      <!-- Étapes pas-à-pas pédagogiques -->
-      <section class="panel-section steps-section">
-        <div class="section-header">
-          <h3>Étapes d'observation</h3>
-          <span class="step-counter" id="stepCounter">Étape 1/3</span>
-        </div>
-        <div class="step-buttons" id="stepButtons">
-          <!-- Généré dynamiquement selon la vue active -->
-        </div>
-      </section>
-
-      <!-- Cartouche d'aide à la compréhension des roches et des échelles -->
-      <section class="panel-section properties-section">
-        <h3>Échelles des enveloppes de la Terre</h3>
-        <div class="layer-comparison-table">
-          <div class="layer-item litho-continentale">
-            <div class="layer-color-bar"></div>
-            <div class="layer-details">
-              <strong>Lithosphère continentale</strong>
-              <div class="layer-stats">
-                <span>Profondeur : <b>0 à 150 km</b></span>
-                <span class="prop-badge rigid">Rigide / Casse</span>
-              </div>
-              <p>Roches solides (granite + manteau lithosphérique froid). Seule enveloppe qui casse (séismes).</p>
-            </div>
-          </div>
-
-          <div class="layer-item litho-oceanique">
-            <div class="layer-color-bar"></div>
-            <div class="layer-details">
-              <strong>Lithosphère océanique</strong>
-              <div class="layer-stats">
-                <span>Profondeur : <b>0 à 100 km</b></span>
-                <span class="prop-badge rigid">Rigide / Dense</span>
-              </div>
-              <p>Créée à la dorsale (100 km). En s'éloignant, elle refroidit, devient plus dense et plonge.</p>
-            </div>
-          </div>
-
-          <div class="layer-item asthenosphere">
-            <div class="layer-color-bar"></div>
-            <div class="layer-details">
-              <strong>Asthénosphère (Manteau convectif)</strong>
-              <div class="layer-stats">
-                <span>Profondeur : <b>100 à 2900 km</b></span>
-                <span class="prop-badge ductile">Ductile (flue)</span>
-              </div>
-              <p>Roches solides mais chaudes et déformables. Siège des cellules de convection lentes (cm/an).</p>
-            </div>
-          </div>
-
-          <div class="layer-item noyau">
-            <div class="layer-color-bar"></div>
-            <div class="layer-details">
-              <strong>Noyau terrestre</strong>
-              <div class="layer-stats">
-                <span>Profondeur : <b>2900 à 6371 km</b></span>
-                <span class="prop-badge hot">Chaud (~4000°C)</span>
-              </div>
-              <p>La surface du noyau chauffe la base du manteau : la matière chaude moins dense monte !</p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- Panneau spécifique pour la vue Séisme : Sismogrammes en temps réel -->
-      <section class="panel-section seismo-section" id="seismoPanel">
-        <div class="section-header">
-          <h3>Enregistrement des Ondes (Sismogrammes)</h3>
+      <!-- Overlay rétractable des sismogrammes pour le Zoom 3 -->
+      <div class="seismo-floating-overlay" id="seismoPanel">
+        <div class="seismo-floating-header">
+          <span>📡 Sismogrammes en temps réel</span>
           <span class="live-tag">DIRECT</span>
         </div>
-
-        <div class="station-card" id="station1Card">
-          <div class="station-header">
-            <span class="station-name">🏙️ Ville A - Station "Proche"</span>
-            <span class="station-dist">Distance : 25 km</span>
+        <div class="seismo-floating-content">
+          <div class="station-mini-box">
+            <div class="mini-header">
+              <b>🏙️ Ville A (25 km)</b>
+              <span id="statusA">En attente...</span>
+            </div>
+            <canvas id="canvasSeismoA" width="280" height="55"></canvas>
           </div>
-          <div class="sismogram-box">
-            <canvas id="canvasSeismoA" width="320" height="70"></canvas>
-            <div class="sismo-status" id="statusA">En attente de l'arrivée des ondes...</div>
-          </div>
-          <div class="damage-report" id="damageA">
-            <span>Dégâts : <b>Importants</b> (façades écroulées)</span>
-            <span class="norme-badge">Bâtiment ordinaire non parasismique</span>
-          </div>
-        </div>
-
-        <div class="station-card" id="station2Card">
-          <div class="station-header">
-            <span class="station-name">🏘️ Ville B - Station "Éloignée"</span>
-            <span class="station-dist">Distance : 95 km</span>
-          </div>
-          <div class="sismogram-box">
-            <canvas id="canvasSeismoB" width="320" height="70"></canvas>
-            <div class="sismo-status" id="statusB">En attente de l'arrivée des ondes...</div>
-          </div>
-          <div class="damage-report" id="damageB">
-            <span>Dégâts : <b>Faibles / Modérés</b> (vibrations ressenties)</span>
-            <span class="norme-badge safe">Maison aux normes parasismiques intacte</span>
+          <div class="station-mini-box">
+            <div class="mini-header">
+              <b>🏘️ Ville B (95 km)</b>
+              <span id="statusB">En attente...</span>
+            </div>
+            <canvas id="canvasSeismoB" width="280" height="55"></canvas>
           </div>
         </div>
-
-        <div class="pedago-note">
-          💡 <strong>Constat d'élève :</strong> La station B enregistre le séisme avec un <u>temps de retard</u> par rapport à la station A car les ondes se propagent à vitesse finie dans la roche. L'amplitude et les dégâts diminuent avec la distance !
+        <div class="seismo-mini-note">
+          💡 <b>Retard d'arrivée (Δt) :</b> La Ville B enregistre le séisme plus tard avec une intensité plus faible.
         </div>
-      </section>
-    </aside>
+      </div>
+    </div>
   </main>
 
   <!-- Modal Lexique SVT -->
