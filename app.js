@@ -34,15 +34,15 @@ const VIEWS_DATA = {
     speedText: "Convection : ~1 à 5 cm/an"
   },
   divergence: {
-    title: "Zoom 1 : Étirement Continental, Dorsale & Création de Lithosphère Océanique",
-    text: "Sous l'effet du panache chaud ascendant, la lithosphère continentale (150 km) s'étire et s'affine jusqu'à rupture. L'océan s'installe. À la dorsale (lieu d'évacuation de la chaleur), le magma liquide fluide s'épanche sous l'eau et forme en continu la lithosphère océanique (100 km) qui s'agrandit.",
+    title: "Zoom 1 : Dorsale Océanique, Axe du Rift & Création de Croûte Océanique",
+    text: "Au sommet de la dorsale se trouve l'axe du rift : un fossé d'effondrement délimité par des failles normales le long desquelles les blocs s'affaissent pour permettre l'extension. En profondeur, l'asthénosphère chaude monte et subit une fusion partielle, alimentant une chambre magmatique. Le magma liquide refroidit dans l'axe et crée les couches de la croûte océanique (basaltes en coussins, filons et gabbros) qui s'écartent symétriquement de part et d'autre de l'axe (quelques cm/an).",
     indicators: [
-      "Litho. continentale : 150 km (s'étire)",
-      "Litho. océanique : 100 km (se crée)",
-      "Dorsale : volcanisme effusif liquide",
-      "Écartement : divergence ~2 à 5 cm/an"
+      "1. Axe du rift : fossé d'effondrement central",
+      "2. Failles normales : affaissement des blocs en extension",
+      "3. Fusion partielle de l'asthénosphère montante",
+      "4. Croûte océanique : coussins, filons, gabbros (~quelques cm/an)"
     ],
-    speedText: "Divergence : ~3 cm/an"
+    speedText: "Divergence : ~2 à 5 cm/an"
   },
   subduction: {
     title: "Zoom 2 : Courant Descendant, Subduction & Volcanisme Explosif",
@@ -238,13 +238,30 @@ class TectoniqueSimulation {
       });
     }
 
-    // Clics sur les phases temporelles du Zoom 1
+    // Clics sur les 4 notions clés de la dorsale océanique (Zoom 1)
     document.querySelectorAll(".phase-mark").forEach((mark) => {
       mark.addEventListener("click", () => {
-        const targetTime = parseFloat(mark.dataset.time);
-        this.divergenceTime = targetTime;
-        if (slider) slider.value = targetTime;
-        this.updateTimelineUI();
+        document.querySelectorAll(".phase-mark").forEach((m) => m.classList.remove("active"));
+        mark.classList.add("active");
+        this.activeHighlight = mark.dataset.highlight;
+
+        const infoText = document.getElementById("infoText");
+        const infoTitle = document.getElementById("infoTitle");
+
+        if (this.activeHighlight === "rift") {
+          infoTitle.textContent = "1. L'Axe du Rift : Fossé d'effondrement central";
+          infoText.textContent = "Situé au sommet de la dorsale (particulièrement marqué sur les dorsales lentes comme l'Atlantique), le rift est une vallée axiale encaissée de 1000 à 2000 m où s'effectue la sortie de la chaleur et du magma.";
+        } else if (this.activeHighlight === "faults") {
+          infoTitle.textContent = "2. Les Failles Normales : Extension de la croûte";
+          infoText.textContent = "Les contraintes d'écartement créent des failles normales inclinées à 60° le long desquelles les blocs rocheux s'affaissent en gradins pour permettre l'étirement et l'extension continue de la croûte.";
+        } else if (this.activeHighlight === "melt") {
+          infoTitle.textContent = "3. La Fusion Partielle & le Magmatisme";
+          infoText.textContent = "La décompression causée par la divergence fait remonter le matériel chaud de l'asthénosphère. Cette péridotite subit une fusion partielle (environ 15%) donnant naissance au magma liquide qui alimente la chambre magmatique axiale.";
+        } else if (this.activeHighlight === "crust") {
+          infoTitle.textContent = "4. La Création de Croûte Océanique";
+          infoText.textContent = "Le magma refroidit dans l'axe pour former de nouvelles couches : basaltes en coussins (pillow-lavas) sous l'eau, complexe de filons au milieu, et gabbros en profondeur. Elles s'écartent symétriquement de part et d'autre de l'axe à quelques cm/an.";
+        }
+
         sounds.playClick();
       });
     });
@@ -439,15 +456,8 @@ class TectoniqueSimulation {
     if (valSpan) {
       const t = Math.floor(this.divergenceTime);
       const dist = Math.floor(this.divergenceTime * 25);
-      valSpan.textContent = `Temps : ${t} Ma | Écartement : ${dist} km`;
+      valSpan.textContent = `Temps : ${t} Ma | Vitesse : ~2,5 cm/an`;
     }
-
-    // Mise à jour visuelle des phases
-    document.querySelectorAll(".phase-mark").forEach((mark) => {
-      const markTime = parseFloat(mark.dataset.time);
-      const isActive = (this.divergenceTime >= markTime && this.divergenceTime < markTime + 20) || (markTime === 55 && this.divergenceTime >= 45);
-      mark.classList.toggle("active", isActive);
-    });
   }
 
   // === SEISME LOGIQUE ===
@@ -822,202 +832,450 @@ class TectoniqueSimulation {
   }
 
   // =========================================================================
-  // VUE 2 : ZOOM 1 - ÉTIREMENT CONTINU DE LA LITHOSPHÈRE CONTINENTALE (150 KM)
-  // CRÉATION CONTINUE DE LA LITHOSPHÈRE OCÉANIQUE (100 KM) À LA DORSALE
-  // ÉVACUATION DE CHALEUR INTERNE & VOLCANISME EFFUSIF SOUS-MARIN (QUELQUES CM/AN)
+  // VUE 2 : ZOOM 1 - DORSALE OCÉANIQUE, AXE DU RIFT & CRÉATION DE CROÛTE
+  // 1. L'axe du rift : fossé d'effondrement central au sommet de la dorsale
+  // 2. Les failles normales : blocs rocheux qui s'affaissent en extension
+  // 3. Fusion partielle et magmatisme : remontée d'asthénosphère chaude
+  // 4. Création de croûte océanique : coussins, filons, gabbros s'écartant
   // =========================================================================
   renderDivergenceContinuousView() {
     const w = this.width;
     const h = this.height;
+    const xc = w * 0.5;
 
-    // Ciel
-    this.ctx.fillStyle = "#0c1527";
-    this.ctx.fillRect(0, 0, w, h * 0.28);
+    // Défilement continu d'accrétion (tapis roulant de divergence : quelques cm/an)
+    const driftSpeed = 18 * this.speed;
+    const driftOffset = (this.time * driftSpeed) % 120;
 
-    const surfaceY = h * 0.28;
-    const litho150H = h * 0.32; // Lithosphère continentale : 150 km
-    const litho100H = litho150H * (100 / 150); // Lithosphère océanique : 100 km
-    const lithoBottom = surfaceY + litho150H;
-    const asthBottom = h;
+    // 1. EAU DE MER PROFONDE (océan au-dessus de la dorsale)
+    const oceanGrad = this.ctx.createLinearGradient(0, 0, 0, h * 0.45);
+    oceanGrad.addColorStop(0, "#021329");
+    oceanGrad.addColorStop(0.5, "#04244a");
+    oceanGrad.addColorStop(1, "#083363");
+    this.ctx.fillStyle = oceanGrad;
+    this.ctx.fillRect(0, 0, w, h);
 
-    // 1. Asthénosphère sous-jacente (chaude, ductile)
-    const asthGrad = this.ctx.createLinearGradient(0, lithoBottom, 0, asthBottom);
-    asthGrad.addColorStop(0, "#c2410c");
+    // Particules marines en suspension (neige marine)
+    this.ctx.fillStyle = "rgba(186, 230, 253, 0.25)";
+    for (let p = 0; p < 25; p++) {
+      const px = (p * 57 + this.time * 8) % w;
+      const py = (p * 39 + this.time * 12) % (h * 0.38);
+      this.ctx.fillRect(px, py, 2, 2);
+    }
+
+    // Niveaux verticaux clés de la coupe
+    const yCrete = h * 0.22;       // Sommet des crêtes de la dorsale
+    const yRift = h * 0.35;        // Plancher du fossé d'effondrement (axe du rift)
+    const riftHalfW = 75;          // Demi-largeur du fossé central
+    const creteDist = 220;         // Distance de la crête par rapport à l'axe
+
+    // 2. ASTHÉNOSPHÈRE EN REMONTÉE CHAUDE (profondeur > h * 0.55)
+    const asthTop = h * 0.52;
+    const asthGrad = this.ctx.createLinearGradient(0, asthTop, 0, h);
+    asthGrad.addColorStop(0, "#993d18");
+    asthGrad.addColorStop(0.5, "#bd4917");
     asthGrad.addColorStop(1, "#ea580c");
     this.ctx.fillStyle = asthGrad;
-    this.ctx.fillRect(0, lithoBottom, w, asthBottom - lithoBottom);
+    this.ctx.fillRect(0, asthTop, w, h - asthTop);
 
-    const centerX = w * 0.5;
+    // 3. FUSION PARTIELLE DU MANTEAU & MAGMATISME (Zone conique sous l'axe)
+    const meltGrad = this.ctx.createRadialGradient(xc, asthTop + 30, 10, xc, h * 0.85, 220);
+    meltGrad.addColorStop(0, "rgba(254, 240, 138, 0.95)");
+    meltGrad.addColorStop(0.4, "rgba(249, 115, 22, 0.7)");
+    meltGrad.addColorStop(0.8, "rgba(220, 38, 38, 0.4)");
+    meltGrad.addColorStop(1, "rgba(153, 61, 24, 0)");
 
-    // Panache ascendant chaud au centre (évacuation de la chaleur interne)
-    const plumeGrad = this.ctx.createRadialGradient(centerX, asthBottom, 20, centerX, lithoBottom, w * 0.25);
-    plumeGrad.addColorStop(0, "rgba(254, 240, 138, 0.75)");
-    plumeGrad.addColorStop(0.5, "rgba(239, 68, 68, 0.4)");
-    plumeGrad.addColorStop(1, "rgba(194, 65, 12, 0)");
-    this.ctx.fillStyle = plumeGrad;
-    this.ctx.fillRect(0, lithoBottom, w, asthBottom - lithoBottom);
+    this.ctx.fillStyle = meltGrad;
+    this.ctx.beginPath();
+    this.ctx.moveTo(xc, asthTop - 15);
+    this.ctx.lineTo(xc + 180, h);
+    this.ctx.lineTo(xc - 180, h);
+    this.ctx.closePath();
+    this.ctx.fill();
 
-    // Flèches d'ascension thermique dans le manteau
-    this.drawAscendingArrows(centerX, lithoBottom, asthBottom);
-
-    // PROGRESSION TEMPORELLE CONTINUE (t entre 0 et 60 Ma)
-    const t = this.divergenceTime;
-
-    // Calcul de l'écartement des blocs continentaux en fonction du temps
-    // t < 15 Ma : continent continu qui s'amincit
-    // t 15 à 30 Ma : séparation progressive (0 à 80 px)
-    // t > 30 Ma : expansion océanique continue (80 à 280 px)
-    let halfSplit = 0;
-    let centralThicknessFrac = 1.0; // 1.0 = 150 km, s'amincit vers 0.2
-    let seaLevelDrop = 0; // effondrement du rift
-
-    if (t < 15) {
-      // Phase 1 : Bombement et étirement / amincissement central
-      const p = t / 15;
-      centralThicknessFrac = 1.0 - p * 0.45; // passe de 150 km à ~80 km
-      seaLevelDrop = p * 14;
-      halfSplit = p * 15;
-    } else if (t < 30) {
-      // Phase 2 : Rupture, effondrement et inondation
-      const p = (t - 15) / 15;
-      centralThicknessFrac = 0.55 - p * 0.45; // passe à 0.1 (rupture)
-      seaLevelDrop = 14 + p * 18;
-      halfSplit = 15 + p * 75;
-    } else {
-      // Phase 3 : Expansion océanique mature (divergence continue de quelques cm/an)
-      const p = (t - 30) / 30;
-      centralThicknessFrac = 0;
-      seaLevelDrop = 32;
-      halfSplit = 90 + p * (w * 0.32); // les blocs s'éloignent de plus en plus
-    }
-
-    const blockLeftX = centerX - halfSplit;
-    const blockRightX = centerX + halfSplit;
-
-    // 2. EAU DE MER (inondation progressive du rift à partir de t > 18 Ma)
-    if (t > 15) {
-      const seaAlpha = Math.min(1.0, (t - 15) / 10);
-      const seaGrad = this.ctx.createLinearGradient(0, surfaceY, 0, surfaceY + h * 0.14);
-      seaGrad.addColorStop(0, `rgba(3, 105, 161, ${0.85 * seaAlpha})`);
-      seaGrad.addColorStop(1, `rgba(12, 74, 110, ${0.95 * seaAlpha})`);
-      this.ctx.fillStyle = seaGrad;
-
-      const waterLeft = Math.max(0, blockLeftX + 30);
-      const waterRight = Math.min(w, blockRightX - 30);
-      if (waterRight > waterLeft) {
-        this.ctx.fillRect(waterLeft, surfaceY, waterRight - waterLeft, h * 0.14);
-
-        // Vagues animées
-        this.ctx.strokeStyle = `rgba(56, 189, 248, ${seaAlpha})`;
-        this.ctx.lineWidth = 2;
+    // Gouttelettes de liquide magmatique issues de la fusion partielle qui montent
+    this.ctx.fillStyle = "#fef08a";
+    for (let g = 0; g < 22; g++) {
+      const gy = h - 20 - ((this.time * 45 + g * 35) % (h - asthTop));
+      const spread = ((h - gy) / (h - asthTop)) * 75;
+      const gx = xc + Math.sin(this.time * 3 + g * 2) * spread;
+      if (gy > asthTop) {
         this.ctx.beginPath();
-        for (let x = waterLeft; x <= waterRight; x += 12) {
-          const y = surfaceY + Math.sin(x * 0.08 + this.time * 3) * 2;
-          if (x === waterLeft) this.ctx.moveTo(x, y);
-          else this.ctx.lineTo(x, y);
-        }
-        this.ctx.stroke();
+        this.ctx.arc(gx, gy, 2.5 + (g % 3), 0, Math.PI * 2);
+        this.ctx.fill();
       }
     }
 
-    // 3. BLOC CONTINENTAL GAUCHE (150 km) - s'éloigne vers la gauche
-    this.ctx.fillStyle = "#8b5e3c";
-    this.ctx.strokeStyle = "#53341b";
+    // 4. CHAMBRE MAGMATIQUE AXIALE (Lentille de magma liquide sous le rift)
+    const chamberY = h * 0.46;
+    const chamberRx = 110;
+    const chamberRy = 32;
+
+    const chamberGrad = this.ctx.createRadialGradient(xc, chamberY, 5, xc, chamberY, chamberRx);
+    chamberGrad.addColorStop(0, "#fef08a"); // Magma liquide incandescent à 1200°C
+    chamberGrad.addColorStop(0.5, "#ef4444");
+    chamberGrad.addColorStop(0.9, "#b91c1c");
+    chamberGrad.addColorStop(1, "#450a0a");
+
+    this.ctx.fillStyle = chamberGrad;
+    this.ctx.beginPath();
+    this.ctx.ellipse(xc, chamberY, chamberRx, chamberRy, 0, 0, Math.PI * 2);
+    this.ctx.fill();
+    this.ctx.strokeStyle = "#f97316";
     this.ctx.lineWidth = 2;
-    this.ctx.beginPath();
-    this.ctx.moveTo(0, surfaceY);
-    this.ctx.lineTo(blockLeftX, surfaceY + seaLevelDrop);
-    // Pente de faille normale inclinée vers le centre
-    this.ctx.lineTo(blockLeftX + 45, lithoBottom);
-    this.ctx.lineTo(0, lithoBottom);
-    this.ctx.closePath();
-    this.ctx.fill();
     this.ctx.stroke();
 
-    // 4. BLOC CONTINENTAL DROIT (150 km) - s'éloigne vers la droite
+    // 5. CHEMINÉE AXIALE & VOLCANISME EFFUSIF AU FOND DU RIFT
+    this.ctx.fillStyle = "#ef4444";
     this.ctx.beginPath();
-    this.ctx.moveTo(blockRightX, surfaceY + seaLevelDrop);
-    this.ctx.lineTo(w, surfaceY);
-    this.ctx.lineTo(w, lithoBottom);
-    this.ctx.lineTo(blockRightX - 45, lithoBottom);
+    this.ctx.moveTo(xc - 14, chamberY - chamberRy + 8);
+    this.ctx.lineTo(xc + 14, chamberY - chamberRy + 8);
+    this.ctx.lineTo(xc + 8, yRift);
+    this.ctx.lineTo(xc - 8, yRift);
     this.ctx.closePath();
     this.ctx.fill();
-    this.ctx.stroke();
 
-    // Failles normales d'étirement (lignes pointillées rouges)
-    if (t < 35) {
-      this.drawFaultLine(blockLeftX - 35, surfaceY, blockLeftX + 10, lithoBottom);
-      this.drawFaultLine(blockRightX + 35, surfaceY, blockRightX - 10, lithoBottom);
+    // Lave liquide fluide qui s'épanche sur le plancher du rift (éruption effusive)
+    const lavaPulse = Math.sin(this.time * 6) * 3;
+    this.ctx.fillStyle = "#f97316";
+    this.ctx.beginPath();
+    this.ctx.ellipse(xc, yRift - 2, 22 + lavaPulse, 7, 0, 0, Math.PI * 2);
+    this.ctx.fill();
+
+    // 6. SOURCES HYDROTHERMALES (Fumeurs Noirs) sur les côtés du rift
+    this.drawBlackSmoker(xc - 50, yRift - 3, -1);
+    this.drawBlackSmoker(xc + 50, yRift - 3, 1);
+
+    // 7. TRACÉ DES STRATES DE LA CROÛTE OCÉANIQUE (COUSSINS, FILONS, GABBROS, MANTEAU)
+    // Profil de la topographie du plancher océanique :
+    // - Plancher du rift entre (xc - riftHalfW) et (xc + riftHalfW) à yRift
+    // - Gradins de failles normales montant vers les crêtes à yCrete
+    // - Pentes externes descendant doucement vers le large
+
+    // A. STRATE 3 : GABBROS (Couche profonde grenue, gris-vert)
+    const gabbroTopH = 50; // décalage sous le plancher
+    const gabbroThick = 65;
+    this.ctx.fillStyle = "#2d5448";
+    this.ctx.strokeStyle = "#1b382f";
+    this.ctx.lineWidth = 1.5;
+    this.drawCrustLayer(xc, riftHalfW, creteDist, yCrete + 45, yRift + 45, gabbroThick, w, h);
+
+    // Motifs grenus de gabbros se déplaçant symétriquement vers la gauche et la droite
+    this.drawGabbroTexture(xc, yRift + 50, gabbroThick, w, driftOffset);
+
+    // B. STRATE 2 : COMPLEXE FILONIEN (Filons verticaux de basalte)
+    const filonThick = 32;
+    this.ctx.fillStyle = "#334155";
+    this.ctx.strokeStyle = "#1e293b";
+    this.drawCrustLayer(xc, riftHalfW, creteDist, yCrete + 16, yRift + 16, filonThick, w, h);
+    this.drawDykeSheetTexture(xc, yRift + 16, filonThick, w, driftOffset);
+
+    // C. STRATE 1 : BASALTES EN COUSSINS (Pillow-lavas en surface sous l'eau)
+    const pillowThick = 20;
+    this.ctx.fillStyle = "#1e293b";
+    this.drawCrustLayer(xc, riftHalfW, creteDist, yCrete, yRift, pillowThick, w, h);
+    this.drawPillowLavaSurface(xc, riftHalfW, creteDist, yCrete, yRift, w, driftOffset);
+
+    // D. SOUS LA CROÛTE : MANTEAU LITHOSPHÉRIQUE (Péridotite rigide refroidie)
+    // S'épaissit vers l'extérieur au fur et à mesure que la lithosphère refroidit
+    this.drawLithosphericMantleWedge(xc, yRift + 115, w, h);
+
+    // 8. LES FAILLES NORMALES (Affaissement des blocs rocheux en extension)
+    this.drawNormalFaultsSystem(xc, riftHalfW, creteDist, yCrete, yRift);
+
+    // 9. FLÈCHES DE DIVERGENCE SYMÉTRIQUE (Quelques cm par an)
+    this.drawDivergenceVectors(xc, yCrete - 35, w);
+
+    // 10. REPERES D'ÂGE DE LA CROÛTE OCÉANIQUE
+    if (this.showGrid) {
+      this.drawCrustAgeBadges(xc, yCrete - 14, w);
     }
 
-    // Pont continental aminci au centre si t < 25 Ma (montre l'amincissement de la lithosphère)
-    if (centralThicknessFrac > 0.05) {
-      const curCentralH = litho150H * centralThicknessFrac;
-      this.ctx.fillStyle = "#a26e47";
+    // 11. CARTES ET ÉTIQUETTES PÉDAGOGIQUES DES 4 NOTIONS CLÉS
+    if (this.showLabels) {
+      // 1. Axe du rift
+      this.drawBadge(xc, yRift - 28, "1. AXE DU RIFT (Vallée axiale)", "Fossé d'effondrement central au sommet de la dorsale", "#38bdf8", true);
+
+      // 2. Failles normales
+      this.drawBadge(xc - 150, yCrete + 10, "2. FAILLES NORMALES", "Les blocs s'affaissent pour permettre l'extension", "#f87171", true);
+
+      // 3. Fusion partielle & Magmatisme
+      this.drawBadge(xc, h - 35, "3. FUSION PARTIELLE DE L'ASTHÉNOSPHÈRE", "Remontée mantellique ➔ fusion partielle par décompression ➔ magma", "#facc15", true);
+
+      // 4. Les 3 strates de croûte océanique
+      this.drawBadge(xc + 180, yRift + 65, "4. CRÉATION DE CROÛTE OCÉANIQUE", "Basaltes en coussins, filons et gabbros s'écartent symétriquement", "#4ade80", true);
+    }
+  }
+
+  // Tracé d'une strate de la croûte épousant le profil topographique du rift
+  drawCrustLayer(xc, riftHalfW, creteDist, yCrete, yRift, thickness, w, h) {
+    this.ctx.beginPath();
+    // Bord gauche
+    this.ctx.moveTo(0, yCrete + 40);
+    this.ctx.lineTo(xc - creteDist, yCrete); // Crête gauche
+    this.ctx.lineTo(xc - riftHalfW, yRift);  // Fond gauche du rift
+    this.ctx.lineTo(xc + riftHalfW, yRift);  // Fond droit du rift
+    this.ctx.lineTo(xc + creteDist, yCrete); // Crête droite
+    this.ctx.lineTo(w, yCrete + 40);         // Bord droit
+
+    // Épaisseur de la strate
+    this.ctx.lineTo(w, yCrete + 40 + thickness);
+    this.ctx.lineTo(xc + creteDist, yCrete + thickness);
+    this.ctx.lineTo(xc + riftHalfW, yRift + thickness);
+    this.ctx.lineTo(xc - riftHalfW, yRift + thickness);
+    this.ctx.lineTo(xc - creteDist, yCrete + thickness);
+    this.ctx.lineTo(0, yCrete + 40 + thickness);
+    this.ctx.closePath();
+    this.ctx.fill();
+    this.ctx.stroke();
+  }
+
+  // Textures des coussins de basalte (Pillow-lavas) qui défilent symétriquement
+  drawPillowLavaSurface(xc, riftHalfW, creteDist, yCrete, yRift, w, drift) {
+    this.ctx.save();
+    this.ctx.fillStyle = "#1e293b";
+    this.ctx.strokeStyle = "#475569";
+    this.ctx.lineWidth = 1.2;
+
+    // Coussins à gauche (s'écartent vers la gauche)
+    for (let x = xc - 20; x > 0; x -= 22) {
+      const movedX = x - (drift % 22);
+      const y = this.getTopoY(movedX, xc, riftHalfW, creteDist, yCrete, yRift) + 8;
       this.ctx.beginPath();
-      this.ctx.moveTo(blockLeftX, surfaceY + seaLevelDrop);
-      this.ctx.lineTo(centerX, surfaceY + seaLevelDrop + 10);
-      this.ctx.lineTo(blockRightX, surfaceY + seaLevelDrop);
-      this.ctx.lineTo(blockRightX - 20, lithoBottom - (litho150H - curCentralH));
-      this.ctx.lineTo(centerX, lithoBottom - (litho150H - curCentralH));
-      this.ctx.lineTo(blockLeftX + 20, lithoBottom - (litho150H - curCentralH));
-      this.ctx.closePath();
+      this.ctx.ellipse(movedX, y, 10, 6, -0.1, 0, Math.PI * 2);
+      this.ctx.fill();
+      this.ctx.stroke();
+    }
+
+    // Coussins à droite (s'écartent vers la droite)
+    for (let x = xc + 20; x < w; x += 22) {
+      const movedX = x + (drift % 22);
+      const y = this.getTopoY(movedX, xc, riftHalfW, creteDist, yCrete, yRift) + 8;
+      this.ctx.beginPath();
+      this.ctx.ellipse(movedX, y, 10, 6, 0.1, 0, Math.PI * 2);
+      this.ctx.fill();
+      this.ctx.stroke();
+    }
+    this.ctx.restore();
+  }
+
+  // Texture des filons verticaux de basalte (complexe filonien)
+  drawDykeSheetTexture(xc, startY, thick, w, drift) {
+    this.ctx.save();
+    this.ctx.strokeStyle = "rgba(71, 85, 105, 0.7)";
+    this.ctx.lineWidth = 2;
+
+    // Filons côté gauche
+    for (let x = xc - 15; x > 0; x -= 14) {
+      const mx = x - (drift % 14);
+      this.ctx.beginPath();
+      this.ctx.moveTo(mx, startY + 2);
+      this.ctx.lineTo(mx, startY + thick - 2);
+      this.ctx.stroke();
+    }
+
+    // Filons côté droit
+    for (let x = xc + 15; x < w; x += 14) {
+      const mx = x + (drift % 14);
+      this.ctx.beginPath();
+      this.ctx.moveTo(mx, startY + 2);
+      this.ctx.lineTo(mx, startY + thick - 2);
+      this.ctx.stroke();
+    }
+    this.ctx.restore();
+  }
+
+  // Texture grenue des gabbros (refroidissement lent en profondeur)
+  drawGabbroTexture(xc, startY, thick, w, drift) {
+    this.ctx.save();
+    this.ctx.fillStyle = "rgba(74, 222, 128, 0.25)";
+    for (let i = 0; i < 40; i++) {
+      const gx1 = (i * 24 - drift) % (w * 0.45);
+      const gy1 = startY + (i * 17) % (thick - 10);
+      if (gx1 > 10) this.ctx.fillRect(xc - gx1, gy1, 4, 3);
+
+      const gx2 = (i * 24 + drift) % (w * 0.45);
+      const gy2 = startY + (i * 19) % (thick - 10);
+      this.ctx.fillRect(xc + gx2, gy2, 4, 3);
+    }
+    this.ctx.restore();
+  }
+
+  // Manteau lithosphérique rigide sous la croûte qui s'épaissit en s'éloignant
+  drawLithosphericMantleWedge(xc, crustBaseY, w, h) {
+    this.ctx.save();
+    this.ctx.fillStyle = "#1e3a2b";
+    this.ctx.strokeStyle = "#14281e";
+    this.ctx.lineWidth = 1.5;
+
+    // Côté gauche
+    this.ctx.beginPath();
+    this.ctx.moveTo(xc - 75, crustBaseY);
+    this.ctx.lineTo(0, crustBaseY);
+    this.ctx.lineTo(0, h * 0.58);
+    this.ctx.lineTo(xc - 110, crustBaseY + 20);
+    this.ctx.closePath();
+    this.ctx.fill();
+    this.ctx.stroke();
+
+    // Côté droit
+    this.ctx.beginPath();
+    this.ctx.moveTo(xc + 75, crustBaseY);
+    this.ctx.lineTo(w, crustBaseY);
+    this.ctx.lineTo(w, h * 0.58);
+    this.ctx.lineTo(xc + 110, crustBaseY + 20);
+    this.ctx.closePath();
+    this.ctx.fill();
+    this.ctx.stroke();
+    this.ctx.restore();
+  }
+
+  // Tracé des failles normales le long desquelles les blocs s'affaissent
+  drawNormalFaultsSystem(xc, riftHalfW, creteDist, yCrete, yRift) {
+    this.ctx.save();
+    this.ctx.strokeStyle = "#f87171";
+    this.ctx.lineWidth = 2.5;
+
+    // Faille normale principale bordière GAUCHE (inclinée vers l'axe à 60°)
+    const f1X1 = xc - creteDist + 40;
+    const f1Y1 = yCrete;
+    const f1X2 = xc - riftHalfW + 10;
+    const f1Y2 = yRift + 60;
+    this.drawFaultWithHachures(f1X1, f1Y1, f1X2, f1Y2, -1);
+
+    // Faille normale principale bordière DROITE (inclinée vers l'axe à 60°)
+    const f2X1 = xc + creteDist - 40;
+    const f2Y1 = yCrete;
+    const f2X2 = xc + riftHalfW - 10;
+    const f2Y2 = yRift + 60;
+    this.drawFaultWithHachures(f2X1, f2Y1, f2X2, f2Y2, 1);
+
+    // Flèches d'affaissement du compartiment affaissé (bloc central du rift)
+    this.drawSlipArrow(xc - 105, yRift - 5, 1, 1);
+    this.drawSlipArrow(xc + 105, yRift - 5, -1, 1);
+
+    this.ctx.restore();
+  }
+
+  drawFaultWithHachures(x1, y1, x2, y2, dir) {
+    this.ctx.beginPath();
+    this.ctx.moveTo(x1, y1);
+    this.ctx.lineTo(x2, y2);
+    this.ctx.stroke();
+
+    // Tirets de faille normale (barbules indiquant le compartiment affaissé)
+    const steps = 6;
+    for (let i = 1; i < steps; i++) {
+      const fx = x1 + (x2 - x1) * (i / steps);
+      const fy = y1 + (y2 - y1) * (i / steps);
+      this.ctx.beginPath();
+      this.ctx.moveTo(fx, fy);
+      this.ctx.lineTo(fx + dir * 8, fy + 4);
+      this.ctx.stroke();
+    }
+  }
+
+  drawSlipArrow(x, y, dx, dy) {
+    this.ctx.fillStyle = "#f87171";
+    this.ctx.beginPath();
+    this.ctx.moveTo(x, y);
+    this.ctx.lineTo(x + dx * 10, y + dy * 18);
+    this.ctx.lineTo(x + dx * 18, y + dy * 14);
+    this.ctx.closePath();
+    this.ctx.fill();
+  }
+
+  // Fumeur noir hydrothermal crachant des volutes minéralisées à 350°C
+  drawBlackSmoker(x, y, dir) {
+    // Cheminée minérale de sulfures
+    this.ctx.fillStyle = "#334155";
+    this.ctx.strokeStyle = "#0f172a";
+    this.ctx.lineWidth = 1.5;
+    this.ctx.beginPath();
+    this.ctx.moveTo(x - 5, y);
+    this.ctx.lineTo(x - 3, y - 16);
+    this.ctx.lineTo(x + 3, y - 16);
+    this.ctx.lineTo(x + 5, y);
+    this.ctx.closePath();
+    this.ctx.fill();
+    this.ctx.stroke();
+
+    // Panache noir de fluides chauds montant dans l'eau
+    this.ctx.fillStyle = "rgba(30, 41, 59, 0.75)";
+    for (let s = 0; s < 6; s++) {
+      const py = y - 18 - s * 8 - ((this.time * 25 + s * 10) % 35);
+      const px = x + dir * (s * 3) + Math.sin(this.time * 4 + s) * 4;
+      this.ctx.beginPath();
+      this.ctx.arc(px, py, 4 + s * 1.5, 0, Math.PI * 2);
       this.ctx.fill();
     }
+  }
 
-    // 5. CRÉATION CONTINUE DE LA LITHOSPHÈRE OCÉANIQUE (100 KM) AU NIVEAU DE LA DORSALE
-    if (t > 25) {
-      const oceBottom = surfaceY + litho100H; // Exactement 100 km à l'échelle
-
-      // Plancher océanique qui grandit entre les deux blocs continentaux
-      const oceLeft = blockLeftX + 35;
-      const oceRight = blockRightX - 35;
-
-      if (oceRight > oceLeft) {
-        this.ctx.fillStyle = "#1e4d6b";
-        this.ctx.strokeStyle = "#0f2d42";
-        this.ctx.lineWidth = 2;
-        this.ctx.beginPath();
-        this.ctx.moveTo(oceLeft, surfaceY + h * 0.12);
-        // Crête de la dorsale océanique au centre
-        this.ctx.lineTo(centerX - 14, surfaceY + h * 0.065);
-        this.ctx.lineTo(centerX + 14, surfaceY + h * 0.065);
-        this.ctx.lineTo(oceRight, surfaceY + h * 0.12);
-        this.ctx.lineTo(oceRight - 8, oceBottom);
-        this.ctx.lineTo(centerX, oceBottom + 10);
-        this.ctx.lineTo(oceLeft + 8, oceBottom);
-        this.ctx.closePath();
-        this.ctx.fill();
-        this.ctx.stroke();
-
-        // Chambre magmatique liquide sous la dorsale
-        this.ctx.fillStyle = "#ef4444";
-        this.ctx.beginPath();
-        this.ctx.ellipse(centerX, oceBottom - 8, 28, 14, 0, 0, Math.PI * 2);
-        this.ctx.fill();
-
-        // Volcanisme effusif actif à l'axe de la dorsale (lieu d'évacuation de la chaleur)
-        this.ctx.fillStyle = "#f97316";
-        this.ctx.beginPath();
-        this.ctx.moveTo(centerX - 8, surfaceY + h * 0.065);
-        this.ctx.lineTo(centerX + 8, surfaceY + h * 0.065);
-        this.ctx.lineTo(centerX + 26, surfaceY + h * 0.095);
-        this.ctx.lineTo(centerX - 26, surfaceY + h * 0.095);
-        this.ctx.closePath();
-        this.ctx.fill();
-
-        // Coussins de basalte (pillow lavas)
-        this.drawPillowLavas(centerX, surfaceY + h * 0.065);
-
-        // Flèches d'écartement océanique (divergence continue)
-        this.drawMotionArrow(centerX - 70, surfaceY + h * 0.11, -1, "Divergence");
-        this.drawMotionArrow(centerX + 70, surfaceY + h * 0.11, 1, "Divergence");
-      }
+  // Calcul d'altitude topographique sur le profil de la dorsale
+  getTopoY(x, xc, riftHalfW, creteDist, yCrete, yRift) {
+    const dist = Math.abs(x - xc);
+    if (dist < riftHalfW) return yRift;
+    if (dist < creteDist) {
+      const f = (dist - riftHalfW) / (creteDist - riftHalfW);
+      return yRift - f * (yRift - yCrete);
     }
+    return yCrete + ((dist - creteDist) / 300) * 40;
+  }
 
-    // Flèches de divergence sur les blocs continentaux
-    this.drawMotionArrow(blockLeftX - 70, surfaceY + 40, -1, "Bloc 1 s'éloigne");
-    this.drawMotionArrow(blockRightX + 70, surfaceY + 40, 1, "Bloc 2 s'éloigne");
+  // Flèches de divergence symétrique animées
+  drawDivergenceVectors(xc, y, w) {
+    this.ctx.save();
+    const arrowLen = 50;
+
+    // Flèche gauche
+    this.drawBigArrow(xc - 110, y, -arrowLen, "⟵ Divergence (~2,5 cm/an)");
+
+    // Flèche droite
+    this.drawBigArrow(xc + 110, y, arrowLen, "Divergence (~2,5 cm/an) ⟶");
+    this.ctx.restore();
+  }
+
+  drawBigArrow(x, y, len, label) {
+    this.ctx.strokeStyle = "#38bdf8";
+    this.ctx.lineWidth = 3.5;
+    this.ctx.beginPath();
+    this.ctx.moveTo(x, y);
+    this.ctx.lineTo(x + len, y);
+    this.ctx.stroke();
+
+    const dir = len > 0 ? 1 : -1;
+    this.ctx.fillStyle = "#38bdf8";
+    this.ctx.beginPath();
+    this.ctx.moveTo(x + len + dir * 6, y);
+    this.ctx.lineTo(x + len - dir * 4, y - 6);
+    this.ctx.lineTo(x + len - dir * 4, y + 6);
+    this.ctx.closePath();
+    this.ctx.fill();
+
+    this.ctx.fillStyle = "#ffffff";
+    this.ctx.font = "bold 10px sans-serif";
+    this.ctx.textAlign = dir > 0 ? "left" : "right";
+    this.ctx.fillText(label, x + (dir > 0 ? 12 : -12), y - 10);
+  }
+
+  // Badges d'âge de la croûte océanique
+  drawCrustAgeBadges(xc, y, w) {
+    this.ctx.save();
+    this.ctx.font = "bold 9px monospace";
+    this.ctx.fillStyle = "#94a3b8";
+
+    // Axe : 0 Ma
+    this.ctx.fillText("0 Ma (Actuel)", xc - 30, y);
+
+    // 1 Ma
+    this.ctx.fillText("~1 Ma", xc - 180, y);
+    this.ctx.fillText("~1 Ma", xc + 150, y);
+
+    // 2 Ma
+    this.ctx.fillText("~2 Ma", xc - 320, y);
+    this.ctx.fillText("~2 Ma", xc + 280, y);
+    this.ctx.restore();
+  }
 
     // Échelle métrique en profondeur
     if (this.showGrid) {
