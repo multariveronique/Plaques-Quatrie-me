@@ -232,10 +232,12 @@ class TectoniqueSimulation {
 
   getHemiPillsCoords() {
     const { cx, cy, R } = this.getHemiGeometry();
+    const subAngleRight = -Math.PI * 0.28; // Zone exacte de descente froide & subduction
+    const subAngleLeft = -Math.PI * 0.72;  // Zone de compression & séismes
     return {
       z1: { x: cx, y: cy - R - 32, label: "ZOOM 1" },
-      z2: { x: cx + Math.cos(-Math.PI * 0.22) * (R + 45), y: cy + Math.sin(-Math.PI * 0.22) * (R + 45), label: "ZOOM 2" },
-      z3: { x: cx + Math.cos(-Math.PI * 0.78) * (R + 45), y: cy + Math.sin(-Math.PI * 0.78) * (R + 45), label: "ZOOM 3" }
+      z2: { x: cx + Math.cos(subAngleRight) * (R + 42), y: cy + Math.sin(subAngleRight) * (R + 42), label: "ZOOM 2" },
+      z3: { x: cx + Math.cos(subAngleLeft) * (R + 42), y: cy + Math.sin(subAngleLeft) * (R + 42), label: "ZOOM 3" }
     };
   }
 
@@ -658,38 +660,49 @@ class TectoniqueSimulation {
 
   drawHemisphereConvection(cx, cy, rInner, rOuter) {
     const totalW = rOuter - rInner;
+    // Angles exacts des courants descendants froids où se produit la subduction
+    const subAngleRight = -Math.PI * 0.28;
+    const subAngleLeft = -Math.PI * 0.72;
+    const spanAngle = Math.abs(subAngleRight - (-Math.PI * 0.5)); // = 0.22 * Math.PI
 
     this.convectionParticles.forEach((p) => {
       p.progress = (p.progress + p.speed * this.speed) % 1.0;
       let curR, curAngle;
       const isLeft = p.cell === "left";
       const sign = isLeft ? -1 : 1;
+      const targetSubAngle = isLeft ? subAngleLeft : subAngleRight;
 
       if (p.progress < 0.25) {
+        // 1. Remontée chaude depuis le noyau au centre (-Math.PI * 0.5)
         const frac = p.progress / 0.25;
         curR = rInner + frac * totalW;
-        curAngle = -Math.PI * 0.5 + sign * (0.04 + p.offset);
+        curAngle = -Math.PI * 0.5 + sign * (0.02 + p.offset * 0.04);
       } else if (p.progress < 0.50) {
+        // 2. Étalement sous la lithosphère en se refroidissant progressivement
         const frac = (p.progress - 0.25) / 0.25;
-        curR = rOuter - 6 + p.offset * 20;
-        curAngle = -Math.PI * 0.5 + sign * (0.04 + frac * 0.45);
+        curR = rOuter - 8 + p.offset * 14;
+        curAngle = -Math.PI * 0.5 + sign * (frac * spanAngle);
       } else if (p.progress < 0.75) {
+        // 3. DESCENTE : le matériel refroidi devenu dense redescend vers le noyau
+        // C'est exactement là que se produit la subduction de la lithosphère !
         const frac = (p.progress - 0.50) / 0.25;
         curR = rOuter - frac * totalW;
-        curAngle = -Math.PI * 0.5 + sign * (0.49 - p.offset * 0.2);
+        curAngle = targetSubAngle + sign * (p.offset * 0.03);
       } else {
+        // 4. Retour le long du noyau pour être réchauffé
         const frac = (p.progress - 0.75) / 0.25;
-        curR = rInner + 8 + p.offset * 15;
-        curAngle = -Math.PI * 0.5 + sign * (0.49 - frac * 0.45);
+        curR = rInner + 8 + p.offset * 12;
+        curAngle = targetSubAngle - sign * (frac * spanAngle);
       }
 
+      // Couleur thermique : chaud (jaune/orange) à la montée, froid (bleu/cyan dense) à la descente
       let color;
-      if (p.progress < 0.35 || p.progress > 0.85) {
-        color = "rgba(254, 240, 138, 0.85)";
-      } else if (p.progress < 0.55) {
-        color = "rgba(249, 115, 22, 0.8)";
+      if (p.progress < 0.30 || p.progress > 0.85) {
+        color = "rgba(254, 240, 138, 0.9)"; // Matière chaude ascendante
+      } else if (p.progress < 0.48) {
+        color = "rgba(249, 115, 22, 0.85)"; // Se refroidit en progressant
       } else {
-        color = "rgba(56, 189, 248, 0.8)";
+        color = "rgba(56, 189, 248, 0.9)"; // Matériel refroidi dense qui redescend !
       }
 
       const px = cx + Math.cos(curAngle) * curR;
@@ -701,16 +714,24 @@ class TectoniqueSimulation {
       this.ctx.fill();
     });
 
+    // Ellipses de guidage de la convection centrées entre montée et descente
     this.ctx.save();
     this.ctx.setLineDash([5, 5]);
-    this.ctx.lineWidth = 2;
+    this.ctx.lineWidth = 1.8;
     this.ctx.strokeStyle = "rgba(254, 240, 138, 0.35)";
+
+    const midR = (rInner + rOuter) * 0.5;
+    const midAngleRight = (-Math.PI * 0.5 + subAngleRight) * 0.5;
+    const midAngleLeft = (-Math.PI * 0.5 + subAngleLeft) * 0.5;
+
+    // Cellule gauche
     this.ctx.beginPath();
-    this.ctx.ellipse(cx - (rInner + rOuter) * 0.26, cy - (rInner + rOuter) * 0.42, totalW * 0.42, totalW * 0.35, -0.4, 0, Math.PI * 2);
+    this.ctx.ellipse(cx + Math.cos(midAngleLeft) * midR, cy + Math.sin(midAngleLeft) * midR, totalW * 0.42, totalW * 0.35, -0.35, 0, Math.PI * 2);
     this.ctx.stroke();
 
+    // Cellule droite
     this.ctx.beginPath();
-    this.ctx.ellipse(cx + (rInner + rOuter) * 0.26, cy - (rInner + rOuter) * 0.42, totalW * 0.42, totalW * 0.35, 0.4, 0, Math.PI * 2);
+    this.ctx.ellipse(cx + Math.cos(midAngleRight) * midR, cy + Math.sin(midAngleRight) * midR, totalW * 0.42, totalW * 0.35, 0.35, 0, Math.PI * 2);
     this.ctx.stroke();
     this.ctx.restore();
   }
@@ -732,37 +753,53 @@ class TectoniqueSimulation {
     this.ctx.fill();
     this.ctx.stroke();
 
-    // Au niveau de la zone de divergence (sommet, -Math.PI * 0.5) : remontée de chaleur / magma rouge
+    // 1. DORSALE OCÉANIQUE (Sommet, -Math.PI * 0.5) : remontée de chaleur / magma rouge
     const dorsaleAngle = -Math.PI * 0.5;
     const dx = cx + Math.cos(dorsaleAngle) * R;
     const dy = cy + Math.sin(dorsaleAngle) * R;
 
     this.ctx.fillStyle = "#ef4444";
     this.ctx.beginPath();
-    this.ctx.arc(dx, dy + 1, 5, 0, Math.PI * 2);
+    this.ctx.arc(dx, dy + 1, 5.5, 0, Math.PI * 2);
     this.ctx.fill();
 
-    // Au niveau de la zone de subduction (-Math.PI * 0.25) :
-    // La lithosphère qui plonge a STRICTEMENT la MÊME couleur lithosphérique partout !
-    const subAngle = -Math.PI * 0.25;
+    // 2. ZONE DE SUBDUCTION : EXACTEMENT LÀ OÙ LE MATÉRIEL REFROIDI REDESCEND !
+    // subAngle = -Math.PI * 0.28 (concordance absolue avec le courant descendant froid)
+    const subAngle = -Math.PI * 0.28;
     const sx = cx + Math.cos(subAngle) * R;
     const sy = cy + Math.sin(subAngle) * R;
 
+    // La plaque lithosphérique océanique plonge dans l'asthénosphère
+    // en suivant très précisément le courant convectif descendant froid vers les profondeurs
+    const slabLength = 75;
+    const plungeAngle = subAngle - 0.38; // Inclinée vers l'intérieur le long du courant descendant
+    const endX = sx + Math.cos(plungeAngle) * slabLength;
+    const endY = sy + Math.sin(plungeAngle) * slabLength;
+
     this.ctx.save();
+    // Plaque plongeante en subduction (même couleur lithosphérique que toute la lithosphère)
     this.ctx.strokeStyle = lithoColor;
-    this.ctx.lineWidth = lithoThickness;
+    this.ctx.lineWidth = lithoThickness * 0.95;
+    this.ctx.lineCap = "round";
     this.ctx.beginPath();
     this.ctx.moveTo(sx, sy);
-    this.ctx.lineTo(sx - Math.cos(subAngle) * 48, sy - Math.sin(subAngle) * 48 + 32);
+    this.ctx.lineTo(endX, endY);
     this.ctx.stroke();
 
-    // Liseré pour délimiter nettement la plaque plongeante dans l'asthénosphère
+    // Liseré sombre pour bien délimiter la plaque plongeante dans l'asthénosphère
     this.ctx.strokeStyle = lithoBorder;
     this.ctx.lineWidth = 1.6;
     this.ctx.beginPath();
     this.ctx.moveTo(sx, sy);
-    this.ctx.lineTo(sx - Math.cos(subAngle) * 48, sy - Math.sin(subAngle) * 48 + 32);
+    this.ctx.lineTo(endX, endY);
     this.ctx.stroke();
+
+    // Fosse océanique (légère dépression bleue à l'endroit exact de l'enfoncement)
+    this.ctx.fillStyle = "#0284c7";
+    this.ctx.beginPath();
+    this.ctx.arc(sx, sy, 3.5, 0, Math.PI * 2);
+    this.ctx.fill();
+
     this.ctx.restore();
   }
 
@@ -852,9 +889,11 @@ class TectoniqueSimulation {
     this.drawBadge(cx, cy - (rNoyau + R) * 0.5, "COURANT CHAUD ASCENDANT", "Matière moins dense qui monte dans l'asthénosphère", "#f97316", true);
     this.drawBadge(cx, cy - R + 14, "FLUX BLOQUÉ PAR LA LITHOSPHÈRE RIGIDE", "La roche rigide dévie le flux horizontalement", "#38bdf8", true);
 
-    const descX = cx + Math.cos(-Math.PI * 0.38) * ((rNoyau + R) * 0.5);
-    const descY = cy + Math.sin(-Math.PI * 0.38) * ((rNoyau + R) * 0.5);
-    this.drawBadge(descX, descY, "COURANT DESCENDANT", "Matière refroidie et dense qui plonge", "#38bdf8", true);
+    // Badge placé précisément à l'endroit où le matériel refroidi redescend et où la subduction se fait
+    const subAngle = -Math.PI * 0.28;
+    const descX = cx + Math.cos(subAngle) * ((rNoyau + R) * 0.52);
+    const descY = cy + Math.sin(subAngle) * ((rNoyau + R) * 0.52);
+    this.drawBadge(descX, descY, "MATÉRIEL REFROIDI DENSE QUI REDESCEND", "Zone de subduction : la lithosphère plonge avec le flux froid", "#38bdf8", true);
   }
 
   // =========================================================================
